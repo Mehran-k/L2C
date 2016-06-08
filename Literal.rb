@@ -6,8 +6,8 @@ class Literal
 		@value = value
 	end
 
-	def my_to_string
-		value == "true" ? @prv.my_to_string : "~" << @prv.my_to_string
+	def my2string
+		value == "true" ? @prv.my2string : "~" << @prv.my2string
 	end
 
 	def duplicate

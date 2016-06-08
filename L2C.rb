@@ -9,6 +9,7 @@ require './clause'
 require './cache'
 require './wfomc'
 require './cnf'
+require './constraint'
 
 #parameters
 order_heuristic = "MNL"
@@ -44,12 +45,12 @@ content = File.read(arguments["-f"])
 parser = Parser.new(content)
 parser.produce_cnf
 cnf = CNF.new(parser.formulae)
-puts cnf.my_to_string
-wfomc = WFOMC.new(parser.weights)
-wfomc.set_order(cnf.min_nested_loop_order(num_sls))
-cache = Cache.new
-cpp = wfomc.compile(cnf, cache)
-puts cpp
+puts cnf.my2string
+# wfomc = WFOMC.new(parser.weights)
+# wfomc.set_order(cnf.min_nested_loop_order(num_sls))
+# cache = Cache.new
+# cpp = wfomc.compile(cnf, cache)
+# puts cpp
 
 # puts "~~~~~~~~~~~~~~~~"
 # prv = cnf.clauses[0].literals[0].prv

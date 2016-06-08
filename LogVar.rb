@@ -12,6 +12,10 @@ class LogVar
 		return true if (@type == lv.type and @psize == lv.psize) ? true : false
 	end
 
+	def my2string
+		return name
+	end
+
 	def duplicate
 		Marshal::load(Marshal.dump(self))
 	end

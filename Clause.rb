@@ -1,11 +1,11 @@
 class Clause
-	attr_accessor :logvars, :literals, :is_true, :equalities
+	attr_accessor :logvars, :literals, :is_true, :constraints
 
-	def initialize(logvars, literals, equalities)
+	def initialize(logvars, literals, constraints)
 		@logvars = logvars.map{|lv| lv.duplicate}
 		@literals = literals.map{|lit| lit.duplicate}
 		@is_true = false
-		@equalities = equalities
+		@constraints = constraints
 	end
 
 	def is_false
@@ -44,10 +44,10 @@ class Clause
 		@literals.each {|literal| literal.prv.name += str if literal.prv.has_lv_with_name(lv.name)}
 	end
 
-	def my_to_string
+	def my2string
 		str = "<{" + @logvars.inject(""){|result, lv| result << (lv.name + ",")}.chop + "},"
-		str += (@literals.size == 0 ? "False" : @literals.inject(""){|result, lit| result << (lit.my_to_string + "v")}.chop) + ","
-		@equalities.each {|lv1, lv2| str += lv1.name + "!=" + lv2.name + "v"} 
+		str += (@literals.size == 0 ? "False" : @literals.inject(""){|result, lit| result << (lit.my2string + "v")}.chop) + ","
+		@constraints.each {|constraint| str += constraint.my2string + "v"} 
 		return str.chop + ">"
 	end
 

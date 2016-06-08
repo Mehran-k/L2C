@@ -54,7 +54,7 @@ class PRV
 		@terms.each_with_index  {|term, i| @terms[i] = new_term.duplicate if term.class == LogVar and term.is_same_as(old_lv) and term.name == old_lv.name}
 	end
 
-	def my_to_string
+	def my2string
 		@terms.size == 0 ? @name : (@terms.inject(@name + "("){|result, term| result << (term.name + ",")}).chop + ")"
 	end
 

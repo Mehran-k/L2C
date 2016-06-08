@@ -112,6 +112,7 @@ class CNF
 		num_loop_itr = 1
 		prvs = Array.new
 		position = Hash.new
+		
 		@clauses.each do |clause|
 			prv_names = prvs.map{|prv| prv.name}
 			(clause.literals.select{|literal| not prv_names.include? literal.prv.name}).each do |new_literal|
@@ -284,10 +285,10 @@ class CNF
 		return clause_strings.sort.join
 	end
 
-	def my_to_string
+	def my2string
 		str = ""
 		@clauses.each do |clause|
-			str += clause.my_to_string + "\n"
+			str += clause.my2string + "\n"
 		end
 		return str
 	end

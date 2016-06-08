@@ -30,6 +30,7 @@ class Parser
 				individuals = spl[3..spl.size]
 				domain = Domain.new(domain_name, domain_size, individuals)
 				@domains[domain.name] = domain
+
 			elsif line.start_with? "predicate"
 				check_predicate_syntax(line, i + 1)
 				spl = line.split(/[" |,|\t"]/).select{|x| x.size > 0}
@@ -51,17 +52,19 @@ class Parser
 				end
 				@predicates[predicate_name] = domains.map{|d| @domains[d]}
 				@weights[predicate_name] = [Math.log(pos_weight), Math.log(neg_weight)]
+
 			elsif line.size == 0 or line.start_with? "//"
 				#this is an empty or a comment line
-			else
+
+			else #formula
 				nospace_line = line.gsub(" ", "").gsub("\t", "")
 				check_formula_syntax(nospace_line, i + 1)
 				if line.index("=").nil? 
 					literals_string = nospace_line.split(/["v|V|\|"]/)
-					equalities_string = nil
+					constraints_string = nil
 				else
 					literals_string = nospace_line[0..nospace_line.rindex(",")-1].split(/["v|V|\|"]/)
-					equalities_string = nospace_line[nospace_line.rindex(",")+1..nospace_line.size].split(/["v|V|\|"]/)
+					constraints_string = nospace_line[nospace_line.rindex(",")+1..nospace_line.size].split(/["v|V|\|"]/)
 				end
 				literals = Array.new
 				all_logvars = Hash.new
@@ -90,14 +93,14 @@ class Parser
 						literals << prv.lit(value)
 					end
 				end
-				equalities = Array.new
-				if(!equalities_string.nil?)
-					equalities_string.each do |equality|
-						spl = equality.split("!=")
-						equalities << [all_logvars[spl[0]], all_logvars[spl[1]]]
+				constraints = Array.new
+				if(!constraints_string.nil?)
+					constraints_string.each do |constraint|
+						spl = constraint.split("!=")
+						constraints << Constraint.new(all_logvars[spl[0]], all_logvars[spl[1]], "!=")
 					end
 				end
-				clause = Clause.new(all_logvars.values, literals, equalities)
+				clause = Clause.new(all_logvars.values, literals, constraints)
 				@formulae << clause
 			end	
 		end

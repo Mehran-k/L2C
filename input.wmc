@@ -9,5 +9,5 @@ predicate F 1.1 2.2
 predicate Friend(people, people)
 
 S(x) v R(x) v F
-Friend(x,y) v T(x)
+Friend(x,y) v T(x), x != y
 Likes(y,m) v S(y)
