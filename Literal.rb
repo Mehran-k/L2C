@@ -6,6 +6,10 @@ class Literal
 		@value = value
 	end
 
+	def name
+		@prv.full_name
+	end
+
 	def my2string
 		value == "true" ? @prv.my2string : "~" << @prv.my2string
 	end

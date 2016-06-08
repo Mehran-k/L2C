@@ -52,9 +52,12 @@ puts cnf.my2string
 # cpp = wfomc.compile(cnf, cache)
 # puts cpp
 
-# puts "~~~~~~~~~~~~~~~~"
-# prv = cnf.clauses[0].literals[0].prv
-# cnf.branch(prv, "3")
-# cnf.apply_branch_observation(prv)
-# puts cnf.my_to_string
+puts "~~~~~~~~~~~~~~~~"
+prv = cnf.clauses[0].literals[0].prv
+cnf.branch(prv, "3")
+cnf.apply_branch_observation(prv)
+puts cnf.my2string
+puts "~~~~~~~~~~~~~~~~"
+cnf.remove_resolved_constraints
+puts cnf.my2string
 

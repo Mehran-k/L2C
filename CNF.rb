@@ -6,11 +6,11 @@ class CNF
 	end
 
 	def get_all_prv_names
-		return @clauses.inject(Array.new){|result, clause| result |= clause.literals.map{|literal| literal.prv.name}.uniq}
+		return @clauses.inject(Array.new){|result, clause| result |= clause.literals.map{|literal| literal.name}.uniq}
 	end
 
 	def get_all_prv_sizes #returns a hash: the keys are prv_names and the values are [num_lvs, psize]
-		return @clauses.inject(Array.new){|result, clause| result += clause.literals.map{|literal| [literal.prv.name, [literal.prv.num_lvs, literal.prv.num_psize]]}}.uniq.to_h
+		return @clauses.inject(Array.new){|result, clause| result += clause.literals.map{|literal| [literal.name, [literal.prv.num_lvs, literal.prv.num_psize]]}}.uniq.to_h
 	end
 
 	def connected_components
@@ -18,13 +18,13 @@ class CNF
 		cnf_dup = self.duplicate
 		cc = Array.new
 		cc << cnf_dup.clauses.shift
-		prv_names = cc.first.literals.map{|literal| literal.prv.name}.uniq
+		prv_names = cc.first.literals.map{|literal| literal.name}.uniq
 		
 		something_changed = true
 		while something_changed
 			something_changed = false
 			cnf_dup.clauses.each_with_index do |clause, i|
-				clause_prv_names = clause.literals.map{|literal| literal.prv.name}.uniq
+				clause_prv_names = clause.literals.map{|literal| literal.name}.uniq
 				if  (prv_names & clause_prv_names).size != 0
 					cc << clause
 					cnf_dup.clauses -= [clause]
@@ -39,7 +39,7 @@ class CNF
 	def update(prv_name, value)
 		@clauses.each do |clause|
 			clause.literals.each do |literal|
-				if  literal.prv.name == prv_name
+				if  literal.name == prv_name
 					if literal.value != value
 						clause.literals -= [literal] 
 					else
@@ -79,8 +79,14 @@ class CNF
 	end
 
 	def apply_branch_observation(branch_prv)
-		update(branch_prv.name + "1", "true")
-		update(branch_prv.name + "2", "false")
+		update(branch_prv.full_name + "1", "true")
+		update(branch_prv.full_name + "2", "false")
+	end
+
+	def remove_resolved_constraints
+		@clauses.each do |clause|
+			clause.constraints.select!{|constraint| !constraint.is_resolved}
+		end
 	end
 
 	def ground(logvar)
@@ -115,9 +121,9 @@ class CNF
 		
 		@clauses.each do |clause|
 			prv_names = prvs.map{|prv| prv.name}
-			(clause.literals.select{|literal| not prv_names.include? literal.prv.name}).each do |new_literal|
+			(clause.literals.select{|literal| not prv_names.include? literal.name}).each do |new_literal|
 				prvs << new_literal.prv
-				position[new_literal.prv.name] = prvs.size - 1
+				position[new_literal.name] = prvs.size - 1
 			end
 		end
 
@@ -130,11 +136,11 @@ class CNF
 		num_loop_itr.times do 
 			iteration_failed = false
 			@clauses.each do |clause|
-				dec_lv = clause.literals[0].prv.terms[current_position[position[clause.literals[0].prv.name]]-1]
-				clause.literals.each {|literal| iteration_failed = true if literal.prv.terms[current_position[position[literal.prv.name]]-1].class != LogVar or literal.prv.terms[current_position[position[literal.prv.name]]-1].name != dec_lv.name}
+				dec_lv = clause.literals[0].prv.terms[current_position[position[clause.literals[0].name]]-1]
+				clause.literals.each {|literal| iteration_failed = true if literal.prv.terms[current_position[position[literal.name]]-1].class != LogVar or literal.prv.terms[current_position[position[literal.name]]-1].name != dec_lv.name}
 				break if iteration_failed
 			end
-			return [@clauses[0].literals[0].prv.terms[current_position[position[@clauses[0].literals[0].prv.name]]-1].psize, current_position, position] if not iteration_failed
+			return [@clauses[0].literals[0].prv.terms[current_position[position[@clauses[0].literals[0].name]]-1].psize, current_position, position] if not iteration_failed
 
 			#current position +1
 			current_position.each_with_index do |entry, i|
@@ -147,16 +153,16 @@ class CNF
 	end
 
 	def decompose(lv_positions, prv_positions) 
-		const = Constant.new(@clauses[0].literals[0].prv.terms[lv_positions[prv_positions[@clauses[0].literals[0].prv.name]]-1].name.upcase + "1")
+		const = Constant.new(@clauses[0].literals[0].prv.terms[lv_positions[prv_positions[@clauses[0].literals[0].name]]-1].name.upcase + "1")
 		@clauses.each do |clause| 
-			lv = clause.literals[0].prv.terms[lv_positions[prv_positions[clause.literals[0].prv.name]]-1]
+			lv = clause.literals[0].prv.terms[lv_positions[prv_positions[clause.literals[0].name]]-1]
 			clause.logvars.each_with_index {|logvar, i| clause.logvars[i] = const if logvar.name == lv.name}
-			clause.literals.each {|literal| literal.prv.terms[lv_positions[prv_positions[literal.prv.name]]-1] = const}
+			clause.literals.each {|literal| literal.prv.terms[lv_positions[prv_positions[literal.name]]-1] = const}
 		end
 	end
 
 	def next_prv(order)
-		order.each {|prv_name| @clauses.each {|clause| clause.literals.each {|literal| return literal.prv if literal.prv.name.start_with? prv_name}}}
+		order.each {|prv_name| @clauses.each {|clause| clause.literals.each {|literal| return literal.prv if literal.name.start_with? prv_name}}}
 	end
 
 	def min_nested_loop_order(num_iterations)#does hill climbing on the minTableSize order to minimize the number of nested loops
@@ -221,8 +227,8 @@ class CNF
 	def min_table_size_order
 		parfactors = Hash.new #parfactor[prv] shows the factor that will be generated if we remove prv
 		self.duplicate.clauses.each do |clause|
-			clause_prv_names = clause.literals.map{|literal| literal.prv.name}
-			clause.literals.each {|literal| parfactors[literal.prv.name] = parfactors[literal.prv.name].to_a | (clause_prv_names - [literal.prv.name])}
+			clause_prv_names = clause.literals.map{|literal| literal.name}
+			clause.literals.each {|literal| parfactors[literal.name] = parfactors[literal.name].to_a | (clause_prv_names - [literal.name])}
 		end
 		return min_table_size(parfactors, get_all_prv_sizes)
 	end

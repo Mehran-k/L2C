@@ -1,8 +1,15 @@
 class PRV
-	attr_accessor :name, :terms
+	attr_accessor :core_name, :full_name, :terms
+
+	def initialize(core_name, full_name, terms)
+		@core_name = core_name
+		@full_name = full_name
+		@terms = terms.map{|term| term.duplicate}
+	end
 
 	def initialize(name, terms)
-		@name = name
+		@core_name = name
+		@full_name = name
 		@terms = terms.map{|term| term.duplicate}
 	end
 
@@ -55,7 +62,7 @@ class PRV
 	end
 
 	def my2string
-		@terms.size == 0 ? @name : (@terms.inject(@name + "("){|result, term| result << (term.name + ",")}).chop + ")"
+		@terms.size == 0 ? @full_name : (@terms.inject(@full_name + "("){|result, term| result << (term.name + ",")}).chop + ")"
 	end
 
 	def duplicate
