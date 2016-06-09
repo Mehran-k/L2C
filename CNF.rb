@@ -19,11 +19,7 @@ class CNF
 
 	def propagate(unit_clause)
 		literal = unit_clause.literals[0]
-		if(literal.prv.logvars.size < 2)
-			update(literal.name, literal.value)
-		# elsif(literal)
-			#to be continued
-		end
+		update_with_identifier(literal.prv, literal.value)
 	end
 
 	def shatter #all changes are done together. I may have to do one shattering, then call shatter again. Or even do it a few times until nothing changes
@@ -99,15 +95,24 @@ class CNF
 		return (@clauses.size == cc.size) ? [CNF.new(cc)] : [CNF.new(cc)] + CNF.new(cnf_dup.clauses).connected_components
 	end
 
+	def update_with_identifier(prv, value)
+		@clauses.each do |clause|
+			clause.literals.each do |literal|
+				if  literal.prv.unique_identifier == prv.unique_identifier
+					clause.is_true = true if literal.value == value
+
+					clause.literals -= [literal] 
+				end
+			end
+		end
+	end
+
 	def update(prv_name, value)
 		@clauses.each do |clause|
 			clause.literals.each do |literal|
 				if  literal.name == prv_name
-					if literal.value != value
-						clause.literals -= [literal] 
-					else
-						clause.is_true = true 
-					end
+					clause.is_true = true  if literal.value == value
+					clause.literals -= [literal] 
 				end
 			end
 		end

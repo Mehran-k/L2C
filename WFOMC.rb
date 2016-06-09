@@ -1,11 +1,12 @@
 class WFOMC
-	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent
+	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent, :num_iterate
 
 	def initialize(weights)
 		@weights = weights
 		@counter = 1
 		@noeffect_vars = Array.new
 		@indent = "    "
+		@num_iterate = 0
 	end
 
 	def set_order(order)
@@ -43,6 +44,9 @@ class WFOMC
 		puts cnf.my2string
 		puts "^^^^^^^^^^^^^^^"
 
+		# @num_iterate += 1
+		# exit if @num_iterate > 5
+
 		cnf_dup = cnf.duplicate
 		str = ""
 		save_counter = @counter
@@ -62,15 +66,26 @@ class WFOMC
 
 		#unit propagation
 		unit_clauses = cnf_dup.unit_clauses
-		if unit_clauses.size > 0
+		if  unit_clauses.size > 0
+			puts "Unit Propagation"
 			str = "v#{save_counter}="
 			unit_clauses.each do |unit_clause|
-				str += (unit_clause.literals[0].value == "true" ? @weights[unit_clause.literals[0].prv.core_name][0].to_s : @weights[unit_clause.literals[0].prv.core_name][1].to_s) + "*" + unit_clause.literal.prv.psize + "+"
+				literal = unit_clause.literals[0]
+				str += (literal.value == "true" ? @weights[literal.prv.core_name][0].to_s : @weights[literal.prv.core_name][1].to_s) + "*" + literal.prv.psize + "+"
 				cnf_dup.propagate(unit_clause)
+				puts cnf_dup.my2string
+				cnf_dup.remove_resolved_constraints
 			end
-			str = str.chop + ";\n"
-			compile(cnf_dup, cache).each_line {|line| str += line}
-			return str
+			str += "v#{save_counter+1};\n"
+
+			@counter += 1
+			to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
+			cnf_dup.clauses -= to_evaluate
+			str2 = ""
+			compile(cnf_dup, cache).each_line {|line| str2 += line}
+			str2 += "v#{save_counter+1}=#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+2).to_s)};\n"
+			str2 += str;
+			return str2
 		end
 
 		cc = cnf_dup.connected_components
@@ -90,7 +105,8 @@ class WFOMC
 		pop_size, decomposer_lv_pos, prv_pos = cnf_dup.get_decomposer_lv
 		if not decomposer_lv_pos.nil?
 			puts "Grounding is disconnected with positions: #{decomposer_lv_pos}"
-			cnf_dup.decompose(decomposer_lv_pos, prv_pos)	
+			cnf_dup.decompose(decomposer_lv_pos, prv_pos)
+			cnf_dup.shatter
 			compile(cnf_dup, cache).each_line {|line| str += line}
 			str += "v#{save_counter}=v#{save_counter + 1}*(#{pop_size});\n"
 			return str #+ cache.add(cnf, "v#{save_counter}")
@@ -132,7 +148,7 @@ class WFOMC
 
 			str += "double v#{save_counter}_arr[#{@maxPopSize}];\nfor(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"
 			compile(cnf_dup, cache).each_line {|line| str += @indent + line}
-			str += @indent + "v#{save_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+(inja bayad weight biad) + #{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n" + @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
+			str += @indent + "v#{save_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+(#{@weights[branch_prv.core_name][0]}*#{loop_iterator}+#{@weights[branch_prv.core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n" + @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
 			#str += @indent + "v#{save_counter}=sum(v#{save_counter},C_#{loop_iterator}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)});\n" + @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-log(#{loop_iterator}+1))+log((#{branch_lv.psize})-#{loop_iterator});#{@new_line}"
 			return str + "}\n" + "v#{save_counter}=sum_arr(v#{save_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{save_counter}")
 		else
