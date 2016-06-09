@@ -13,6 +13,14 @@ class CNF
 		return @clauses.inject(Array.new){|result, clause| result += clause.literals.map{|literal| [literal.name, [literal.prv.num_lvs, literal.prv.num_psize]]}}.uniq.to_h
 	end
 
+	def unit_clauses
+		@clauses.select{|clause| clause.literals.size == 1}
+	end
+
+	def propagate(unit_clause)
+		
+	end
+
 	def connected_components
 		return [] if @clauses.empty?
 		cnf_dup = self.duplicate
@@ -120,7 +128,7 @@ class CNF
 		position = Hash.new
 		
 		@clauses.each do |clause|
-			prv_names = prvs.map{|prv| prv.name}
+			prv_names = prvs.map{|prv| prv.full_name}
 			(clause.literals.select{|literal| not prv_names.include? literal.name}).each do |new_literal|
 				prvs << new_literal.prv
 				position[new_literal.name] = prvs.size - 1
@@ -152,17 +160,21 @@ class CNF
 		return [nil, nil, nil]
 	end
 
-	def decompose(lv_positions, prv_positions) 
-		const = Constant.new(@clauses[0].literals[0].prv.terms[lv_positions[prv_positions[@clauses[0].literals[0].name]]-1].name.upcase + "1")
+	def decompose(lv_positions, prv_positions) #the constant names can be equal
+		const = Constant.new("NC_" + @clauses[0].literals[0].prv.terms[lv_positions[prv_positions[@clauses[0].literals[0].name]]-1].name.upcase + "1")
 		@clauses.each do |clause| 
 			lv = clause.literals[0].prv.terms[lv_positions[prv_positions[clause.literals[0].name]]-1]
 			clause.logvars.each_with_index {|logvar, i| clause.logvars[i] = const if logvar.name == lv.name}
+			clause.literals.each {|literal| literal.prv.terms.each_with_index {|term, i| literal.prv.terms[i] = const if literal.prv.terms[i].class == LogVar and literal.prv.terms[i].name == lv.name}}
 			clause.literals.each {|literal| literal.prv.terms[lv_positions[prv_positions[literal.name]]-1] = const}
+			clause.constraints.each do |constraint|
+				constraint.replace_terms(lv, const)
+			end
 		end
 	end
 
 	def next_prv(order)
-		order.each {|prv_name| @clauses.each {|clause| clause.literals.each {|literal| return literal.prv if literal.name.start_with? prv_name}}}
+		order.each {|prv_name| @clauses.each {|clause| clause.literals.each {|literal| return literal.prv if literal.prv.core_name == prv_name}}}
 	end
 
 	def min_nested_loop_order(num_iterations)#does hill climbing on the minTableSize order to minimize the number of nested loops
@@ -286,7 +298,7 @@ class CNF
 				clause_type_counts[lv.type] = clause_type_counts[lv.type].to_i + 1
 				clause.replace_all_lvs(lv, const)
 			end
-			clause_strings << clause.my_to_string
+			clause_strings << clause.my2string
 		end
 		return clause_strings.sort.join
 	end
