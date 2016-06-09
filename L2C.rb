@@ -10,10 +10,12 @@ require './cache'
 require './wfomc'
 require './cnf'
 require './constraint'
+require './cpphandler'
 
 #parameters
 order_heuristic = "MNL"
 num_sls = 0
+max_pop_size = 100
 
 #arguments
 arguments = Hash.new
@@ -51,8 +53,12 @@ puts cnf.my2string
 wfomc = WFOMC.new(parser.weights)
 wfomc.set_order(cnf.min_nested_loop_order(num_sls))
 cache = Cache.new
-cpp = wfomc.compile(cnf, cache)
-puts cpp
+cpp_core = wfomc.compile(cnf, cache)
+doubles = wfomc.get_doubles
+puts cpp_core
+cpp_handler = CPPHandler.new(cpp_core, doubles)
+cpp_handler.execute(arguments["-f"].gsub(".wmc", ""), max_pop_size)
+
 
 # pop_size, decomposer_lv_pos, prv_pos = cnf.get_decomposer_lv
 # # puts pop_size.inspect

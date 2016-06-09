@@ -1,5 +1,5 @@
 class WFOMC
-	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent, :num_iterate
+	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent, :num_iterate, :doubles
 
 	def initialize(weights)
 		@weights = weights
@@ -7,10 +7,18 @@ class WFOMC
 		@noeffect_vars = Array.new
 		@indent = "    "
 		@num_iterate = 0
+		@doubles = Array.new
 	end
 
 	def set_order(order)
 		@order = order
+	end
+
+	def get_doubles
+		doubles = "double "
+		doubles += @doubles.join(",") + "," if not @doubles.empty?
+		@counter.times {|i| doubles << "v#{i+1}," if not @noeffect_vars.include? "v#{i+1}"}
+		return doubles.chop
 	end
 
 	def eval_str(cnf, to_evaluate_clauses, v) #evaluates clauses that can be evaluated and generates appropriate string
