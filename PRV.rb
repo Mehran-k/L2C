@@ -41,6 +41,13 @@ class PRV
 		@terms.select{|term| term.class == LogVar and term.name == name}.empty? ? false : true
 	end
 
+	def index_lv_with_name(name)
+		@terms.each_with_index do |term, i|
+			return i if term.class == LogVar and term.name == name
+		end
+		return -1
+	end
+
 	def num_psize
 		return @terms.inject(1) {|result, term| result * term.psize.to_i}
 	end
@@ -59,6 +66,26 @@ class PRV
 
 	def replace_all_lvs(old_lv, new_term)
 		@terms.each_with_index  {|term, i| @terms[i] = new_term.duplicate if term.class == LogVar and term.is_same_as(old_lv) and term.name == old_lv.name}
+	end
+
+	def unique_identifier
+		return @full_name if @terms.size == 0
+	 	types_count = Hash.new
+	 	name2id = Hash.new
+	 	id = @full_name + "("
+	 	@terms.each do |term|
+	 		if term.class == Constant
+	 			id += term.name 
+	 		elsif !name2id[term.name].nil?
+	 			id += name2id[term.name]
+	 		else
+	 			types_count[term.type] = types_count[term.type].to_i + 1
+	 			name2id[term.name] = term.type + types_count[term.type].to_s
+	 			id += name2id[term.name]
+	 		end
+	 		id += ","
+	 	end
+	 	return id.chop + ")"
 	end
 
 	def my2string

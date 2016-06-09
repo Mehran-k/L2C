@@ -18,7 +18,62 @@ class CNF
 	end
 
 	def propagate(unit_clause)
-		
+		literal = unit_clause.literals[0]
+		if(literal.prv.logvars.size < 2)
+			update(literal.name, literal.value)
+		# elsif(literal)
+			#to be continued
+		end
+	end
+
+	def shatter #all changes are done together. I may have to do one shattering, then call shatter again. Or even do it a few times until nothing changes
+		@clauses.each do |clause|
+			clause.constraints.each do |constraint|
+				remove_lv_neq_const(constraint.term1, constraint.term2) if constraint.lv_neq_const
+			end
+		end
+		@clauses.each do |clause|
+			clause.constraints.each do |constraint|
+				if constraint.lv_neq_lv
+					clause.literals.each do |literal|
+						if literal.prv.logvars.size >= 2
+							lv1_index = literal.prv.index_lv_with_name(constraint.term1.name)
+							lv2_index = literal.prv.index_lv_with_name(constraint.term2.name)
+							split(literal.prv, lv1_index, lv2_index) if lv1_index != -1 and lv2_index != -1 
+						end
+					end
+				end
+			end
+		end
+	end
+
+	def remove_lv_neq_const(lv, const)
+		@clauses.each do |clause|
+			clause.logvars.each_with_index do |clause_lv, i|
+				clause.logvars[i].decrement_psize if clause_lv.is_same_as(lv)
+			end
+			clause.literals.each do |literal|
+				literal.prv.logvars.each_with_index do |prv_lv, i|
+					literal.prv.logvars[i].decrement_psize if prv_lv.is_same_as(lv)	
+				end
+			end
+			clause.constraints.select!{|constraint| !constraint.is_resolved_after_removing_constant(lv, const)}
+		end
+	end
+
+	def split(prv, lv1_index, lv2_index)
+		@clauses.each do |clause|
+			clause.literals.each do |literal|
+				if literal.prv.unique_identifier == prv.unique_identifier
+					if !clause.has_constraint(literal.prv.logvars[lv1_index], literal.prv.logvars[lv2_index], "!=")
+						clause_dup = clause.duplicate
+						clause.add_constraint(literal.prv.logvars[lv1_index], literal.prv.logvars[lv2_index], "!=")
+						clause_dup.replace_all_lvs(literal.prv.logvars[lv2_index], literal.prv.logvars[lv1_index])
+						@clauses << clause_dup
+					end
+				end
+			end
+		end
 	end
 
 	def connected_components

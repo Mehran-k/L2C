@@ -46,19 +46,27 @@ parser = Parser.new(content)
 parser.produce_cnf
 cnf = CNF.new(parser.formulae)
 puts cnf.my2string
+
+cnf.shatter
+puts "!!~~~~~~~~~~~~!!"
+puts cnf.my2string
+
 # pop_size, decomposer_lv_pos, prv_pos = cnf.get_decomposer_lv
-# puts pop_size.inspect
-# puts decomposer_lv_pos.inspect
-# puts prv_pos.inspect
+# # puts pop_size.inspect
+# # puts decomposer_lv_pos.inspect
+# # puts prv_pos.inspect
 # puts "~~~~~~~~~~"
 # cnf.decompose(decomposer_lv_pos, prv_pos)
 # puts cnf.my2string
+# cnf.shatter
+# puts "~~~~~~~~"
+# puts cnf.my2string
 
-wfomc = WFOMC.new(parser.weights)
-wfomc.set_order(cnf.min_nested_loop_order(num_sls))
-cache = Cache.new
-cpp = wfomc.compile(cnf, cache)
-puts cpp
+# wfomc = WFOMC.new(parser.weights)
+# wfomc.set_order(cnf.min_nested_loop_order(num_sls))
+# cache = Cache.new
+# cpp = wfomc.compile(cnf, cache)
+# puts cpp
 
 # puts "~~~~~~~~~~~~~~~~"
 # prv = cnf.clauses[0].literals[0].prv

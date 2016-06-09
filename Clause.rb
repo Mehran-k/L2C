@@ -20,11 +20,16 @@ class Clause
 		@is_true or @literals.size == 0
 	end
 
-	# def evaluate(mln)
-	# 	return "0.0" if is_false
-	# 	return "#{@weight}" if self.psize == "1"
-	# 	return "(#{@weight}*#{self.psize})"
-	# end
+	def has_constraint(term1, term2, constraint)
+		@constraints.each do |clause_constraint|
+			return true if clause_constraint.match(term1, term2, constraint)
+		end
+		return false
+	end
+
+	def add_constraint(term1, term2, constraint)
+		@constraints << Constraint.new(term1, term2, constraint)
+	end
 
 	def update(prv_name, value) #note that update only drops literals from the clause. It does not (and should not) change L
 		@literals.each do |literal|

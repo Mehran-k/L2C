@@ -63,7 +63,7 @@ class WFOMC
 		#unit propagation
 		unit_clauses = cnf_dup.unit_clauses
 		if unit_clauses.size > 0
-			str = "v#{save_counter=}"
+			str = "v#{save_counter}="
 			unit_clauses.each do |unit_clause|
 				str += (unit_clause.literals[0].value == "true" ? @weights[unit_clause.literals[0].prv.core_name][0].to_s : @weights[unit_clause.literals[0].prv.core_name][1].to_s) + "*" + unit_clause.literal.prv.psize + "+"
 				cnf_dup.propagate(unit_clause)

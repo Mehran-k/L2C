@@ -12,6 +12,10 @@ class LogVar
 		return true if (@type == lv.type and @psize == lv.psize) ? true : false
 	end
 
+	def decrement_psize #psize may become negative at runtime
+		@psize = "(" + @psize + "-1)"
+	end
+
 	def my2string
 		return name
 	end
