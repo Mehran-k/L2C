@@ -60,7 +60,7 @@ class WFOMC
 		if  cnf_dup.clauses.size == 0
 			puts "CNF was empty. Returning."
 			@noeffect_vars << "v#{save_counter}"
-			return "\n"
+			return ""
 		end
 
 		# cache_value = cache.get(cnf_dup)
@@ -75,13 +75,15 @@ class WFOMC
 		if  unit_clauses.size > 0
 			str = "v#{save_counter}="
 			unit_clauses.each do |unit_clause|
-				puts "Unit Propagation on #{unit_clause.literals[0].prv.my2string}"
-				literal = unit_clause.literals[0]
-				if(@weights[literal.prv.core_name] != [0, 0])
-					str << (literal.value == "true" ? @weights[literal.prv.core_name][0].to_s : @weights[literal.prv.core_name][1].to_s) + "*" + literal.prv.psize + "+"
+				if(unit_clause.literals.size > 0) #previous unit clauses may make others disapper
+					puts "Unit Propagation on #{unit_clause.literals[0].prv.my2string}"
+					literal = unit_clause.literals[0]
+					if(@weights[literal.prv.core_name] != [0, 0])
+						str << (literal.value == "true" ? @weights[literal.prv.core_name][0].to_s : @weights[literal.prv.core_name][1].to_s) + "*" + literal.prv.psize + "+"
+					end
+					cnf_dup.propagate(unit_clause)
+					cnf_dup.remove_resolved_constraints
 				end
-				cnf_dup.propagate(unit_clause)
-				cnf_dup.remove_resolved_constraints
 			end
 			puts "After unit propagation, we have the following CNF:"
 			puts cnf_dup.my2string
@@ -209,7 +211,7 @@ class WFOMC
 			puts cnf_dup.my2string
 			puts "\n"
 			
-			str += "double v#{save_counter}_arr[#{@max_pop_size}];\nfor(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"
+			str += "double v#{save_counter}_arr[MAX];\nfor(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"
 			compile(cnf_dup, cache).each_line {|line| str << @indent + line}
 			str += @indent + "v#{save_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+(#{@weights[branch_prv.core_name][0]}*#{loop_iterator}+#{@weights[branch_prv.core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n" + @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
 			#str += @indent + "v#{save_counter}=sum(v#{save_counter},C_#{loop_iterator}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)});\n" + @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-log(#{loop_iterator}+1))+log((#{branch_lv.psize})-#{loop_iterator});#{@new_line}"

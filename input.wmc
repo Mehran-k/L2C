@@ -8,7 +8,6 @@ predicate T(people)
 predicate F 1.1 2.2
 predicate Friend(people, people)
 
-R(x)
-!R(x) v S(x) v Friend(x, y) v T(y)
-Friend(x, x) v T(x)
+Friend(x,x)
+!S(x) v !Friend(x,y) v T(y)
 
