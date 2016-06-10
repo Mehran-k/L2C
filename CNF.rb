@@ -41,29 +41,31 @@ class CNF
 				end
 			end
 		end
+		@clauses.each do |clause|
+			clause.literals.each do |literal|
+				if literal.prv.num_lvs == 2 and literal.prv.num_distinct_lvs == 1
+					split(literal.prv, 0, 1)
+				end
+			end
+		end
+		#I should add the case where a "friend(x,x)" and a "friend(x,y)" with no constraints exist in the model.
 	end
 
 	def remove_lv_neq_const(lv, const)
 		@clauses.each do |clause|
-			clause.logvars.each_with_index do |clause_lv, i|
-				clause.logvars[i].decrement_psize if clause_lv.is_same_as(lv)
-			end
-			clause.literals.each do |literal|
-				literal.prv.logvars.each_with_index do |prv_lv, i|
-					literal.prv.logvars[i].decrement_psize if prv_lv.is_same_as(lv)	
-				end
-			end
-			clause.constraints.select!{|constraint| !constraint.is_resolved_after_removing_constant(lv, const)}
+			clause.remove_lv_neq_const(lv, const)
 		end
 	end
 
 	def split(prv, lv1_index, lv2_index)
 		@clauses.each do |clause|
 			clause.literals.each do |literal|
-				if literal.prv.unique_identifier == prv.unique_identifier
-					if !clause.has_constraint(literal.prv.logvars[lv1_index], literal.prv.logvars[lv2_index], "!=")
+				# if literal.prv.unique_identifier == prv.unique_identifier 
+				if literal.name == prv.full_name
+					if  literal.prv.logvars[lv1_index].name != literal.prv.logvars[lv2_index].name and !clause.has_constraint(literal.prv.logvars[lv1_index], literal.prv.logvars[lv2_index], "!=")
 						clause_dup = clause.duplicate
 						clause.add_constraint(literal.prv.logvars[lv1_index], literal.prv.logvars[lv2_index], "!=")
+						# literal.prv.full_name = literal.prv.full_name + "_neq"
 						clause_dup.replace_all_lvs(literal.prv.logvars[lv2_index], literal.prv.logvars[lv1_index])
 						@clauses << clause_dup
 					end
@@ -72,7 +74,26 @@ class CNF
 		end
 	end
 
-	def connected_components
+	def replace_prvs_having_same_lv
+		@clauses.each do |clause|
+			clause.literals.each do |literal|
+				if(literal.prv.num_lvs != literal.prv.num_distinct_lvs)
+					puts literal.prv.my2string
+					new_prv = literal.prv.remove_same_lvs
+					puts new_prv.my2string
+					replace_all_prvs(literal.prv, new_prv)
+				end
+			end
+		end
+	end
+
+	def replace_all_prvs(prv1, prv2)
+		@clauses.each do |clause|
+			clause.replace_all_prvs(prv1, prv2)
+		end
+	end
+
+	def connected_components #"friend(x,x)" and "friend(x,y), x!= y" are also disconnected. I should add this.
 		return [] if @clauses.empty?
 		cnf_dup = self.duplicate
 		cc = Array.new
@@ -335,10 +356,10 @@ class CNF
 		return 1000
 	end
 
-	def has_no_lvs
-		@clauses.each {|clause| clause.literals.each {|literal| return false if literal.prv.num_lvs > 0}}
-		return true
-	end
+	# def has_no_lvs
+	# 	@clauses.each {|clause| clause.literals.each {|literal| return false if literal.prv.num_lvs > 0}}
+	# 	return true
+	# end
 
 	def unique_identifier
 		cnf_dup = self.duplicate

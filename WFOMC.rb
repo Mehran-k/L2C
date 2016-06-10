@@ -1,13 +1,13 @@
 class WFOMC
-	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent, :num_iterate, :doubles
+	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent, :doubles, :max_pop_size
 
-	def initialize(weights)
+	def initialize(weights, max_pop_size)
 		@weights = weights
 		@counter = 1
 		@noeffect_vars = Array.new
 		@indent = "    "
-		@num_iterate = 0
 		@doubles = Array.new
+		@max_pop_size = max_pop_size
 	end
 
 	def set_order(order)
@@ -38,10 +38,6 @@ class WFOMC
 				end
 			end
 		end
-		# to_evaluate_clauses.each do |clause| 
-		# 	e = clause.evaluate(cnf)
-		# 	str += (e + "+") if e != "0.0"
-		# end
 		(@noeffect_vars.include? v) ? (return "0") : (return v) if str == ""
 		(@noeffect_vars.include? v) ? (return "(" + str.chop + ")") : (return v + "+(" + str.chop + ")")
 	end
@@ -51,9 +47,6 @@ class WFOMC
 		puts "vvvvvvvvvvvvvvvv"
 		puts cnf.my2string
 		puts "^^^^^^^^^^^^^^^"
-
-		# @num_iterate += 1
-		# exit if @num_iterate > 5
 
 		cnf_dup = cnf.duplicate
 		str = ""
@@ -79,21 +72,31 @@ class WFOMC
 			str = "v#{save_counter}="
 			unit_clauses.each do |unit_clause|
 				literal = unit_clause.literals[0]
-				str += (literal.value == "true" ? @weights[literal.prv.core_name][0].to_s : @weights[literal.prv.core_name][1].to_s) + "*" + literal.prv.psize + "+"
+				if(@weights[literal.prv.core_name] != [0, 0])
+					str << (literal.value == "true" ? @weights[literal.prv.core_name][0].to_s : @weights[literal.prv.core_name][1].to_s) + "*" + literal.prv.psize + "+"
+				end
 				cnf_dup.propagate(unit_clause)
 				puts cnf_dup.my2string
 				cnf_dup.remove_resolved_constraints
 			end
-			str += "v#{save_counter+1};\n"
-
-			@counter += 1
-			to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
-			cnf_dup.clauses -= to_evaluate
-			str2 = ""
-			compile(cnf_dup, cache).each_line {|line| str2 += line}
-			str2 += "v#{save_counter+1}=#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+2).to_s)};\n"
-			str2 += str;
-			return str2
+			if str == "v#{save_counter}=" #all unit clauses had weight 1
+				to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
+				cnf_dup.clauses -= to_evaluate
+				str2 = ""
+				compile(cnf_dup, cache).each_line {|line| str2 << line}
+				str2 << "v#{save_counter}=#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
+				return str2
+			else
+				str += "v#{save_counter+1};\n"
+				@counter += 1
+				to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
+				cnf_dup.clauses -= to_evaluate
+				str2 = ""
+				compile(cnf_dup, cache).each_line {|line| str2 << line}
+				str2 << "v#{save_counter+1}=#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+2).to_s)};\n"
+				str2 << str;
+				return str2
+			end
 		end
 
 		cc = cnf_dup.connected_components
@@ -125,7 +128,7 @@ class WFOMC
 		branch_prv = cnf_dup.next_prv(@order)
 		puts "branching on: " + branch_prv.my2string
 
-		if  branch_prv.num_lvs == 0
+		if  branch_prv.num_distinct_lvs == 0
 			cnf_dup.update(branch_prv.full_name, "true")
 			to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
 			cnf_dup.clauses -= to_evaluate
@@ -135,15 +138,15 @@ class WFOMC
 			to_evaluate2 = cnf_dup2.clauses.select{|clause| clause.can_be_evaluated}
 			cnf_dup2.clauses -= to_evaluate2
 
-			compile(cnf_dup, cache).each_line {|line| str += line}
+			compile(cnf_dup, cache).each_line {|line| str << line}
 			save_counter2 = @counter
-			compile(cnf_dup2, cache).each_line {|line| str += line}
+			compile(cnf_dup2, cache).each_line {|line| str << line}
 
 			str += "v#{save_counter}=sum(#{@weights[branch_prv.core_name][0]}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)},#{@weights[branch_prv.core_name][1]}+#{eval_str(cnf_dup2, to_evaluate2, 'v' + (save_counter2).to_s)});\n"
 			# str += cache.add(cnf, "v#{save_counter}")
 			return str
 
-		elsif branch_prv.num_lvs == 1
+		elsif branch_prv.num_distinct_lvs == 1
 			loop_iterator = "i_" + branch_prv.full_name + "_i"
 			str += "C_#{loop_iterator}=0;#{@new_line}"
 			@doubles |= ["C_#{loop_iterator}"]
@@ -154,11 +157,12 @@ class WFOMC
 			to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
 			cnf_dup.clauses -= to_evaluate
 
-			str += "double v#{save_counter}_arr[#{@maxPopSize}];\nfor(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"
-			compile(cnf_dup, cache).each_line {|line| str += @indent + line}
+			puts @max_pop_size
+			str += "double v#{save_counter}_arr[#{@max_pop_size}];\nfor(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"
+			compile(cnf_dup, cache).each_line {|line| str << @indent + line}
 			str += @indent + "v#{save_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+(#{@weights[branch_prv.core_name][0]}*#{loop_iterator}+#{@weights[branch_prv.core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n" + @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
 			#str += @indent + "v#{save_counter}=sum(v#{save_counter},C_#{loop_iterator}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)});\n" + @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-log(#{loop_iterator}+1))+log((#{branch_lv.psize})-#{loop_iterator});#{@new_line}"
-			return str + "}\n" + "v#{save_counter}=sum_arr(v#{save_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{save_counter}")
+			return str + "}\n" + "v#{save_counter}=sum_arr(v#{save_counter}_arr, #{branch_lv.psize});" + "\n" #+ cache.add(cnf, "v#{save_counter}")
 		else
 			puts cnf_dup.my2string
 			return "(Two lvs)\n"

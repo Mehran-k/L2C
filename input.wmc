@@ -1,11 +1,13 @@
-domain people 5 {ali, reza, mehran, hasan, hashem}
+domain people 3 {ali, reza, hasan}
 domain movie 3 {Titanic, Her, Zootopia}
 
 predicate Likes(people, movie)
-predicate R(people) 2.71 8
+predicate R(people)
 predicate S(people)
 predicate T(people)
 predicate F 1.1 2.2
 predicate Friend(people, people)
 
 R(x)
+!R(x) v S(x) v Friend(x, y) v T(y)
+Friend(x, x) v T(x)

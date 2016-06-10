@@ -25,6 +25,10 @@ class PRV
 		return @terms.select{|term| term.class == LogVar}.size
 	end
 
+	def num_distinct_lvs #returns number of lvs with different names
+		return @terms.select{|term| term.class == LogVar}.map{|lv| lv.name}.uniq.size
+	end
+
 	def logvars
 		return @terms.select{|term| term.class == LogVar}
 	end
@@ -66,6 +70,24 @@ class PRV
 
 	def replace_all_lvs(old_lv, new_term)
 		@terms.each_with_index  {|term, i| @terms[i] = new_term.duplicate if term.class == LogVar and term.is_same_as(old_lv) and term.name == old_lv.name}
+	end
+
+	def remove_same_lvs
+		return duplicate if num_distinct_lvs == num_lvs
+		term_visited = Hash.new
+		prv = self.duplicate
+		prv.terms = Array.new
+		prv.full_name += "_r"
+
+		@terms.each_with_index do |term, i|
+			if term_visited[term.name].nil?
+				term_visited[term.name] = true
+				prv.terms << term
+			else
+				prv.full_name += i.to_s
+			end
+		end
+		return prv
 	end
 
 	def unique_identifier

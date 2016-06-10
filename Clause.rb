@@ -31,6 +31,18 @@ class Clause
 		@constraints << Constraint.new(term1, term2, constraint)
 	end
 
+	def remove_lv_neq_const(lv, const)
+		@logvars.each_with_index do |clause_lv, i|
+			logvars[i].decrement_psize if clause_lv.is_same_as(lv)
+		end
+		@literals.each do |literal|
+			literal.prv.logvars.each_with_index do |prv_lv, i|
+				literal.prv.logvars[i].decrement_psize if prv_lv.is_same_as(lv)	
+			end
+		end
+		@constraints.select!{|constraint| !constraint.is_resolved_after_removing_constant(lv, const)}
+	end
+
 	def update(prv_name, value) #note that update only drops literals from the clause. It does not (and should not) change L
 		@literals.each do |literal|
 			if  literal.name == prv_name
@@ -44,6 +56,12 @@ class Clause
 		@literals.each {|literal| literal.prv.replace_all_lvs(old_lv, new_term)}
 		@logvars.each_with_index {|logvar, i| @logvars[i] = new_term if logvar.is_same_as(old_lv) and logvar.name == old_lv.name}
 		@constraints.each {|constraint| constraint.replace_terms(old_lv, new_term)}
+	end
+
+	def replace_all_prvs(prv1, prv2)
+		@literals.each_with_index do |literal, i|
+			@literals[i].prv = prv2.duplicate if literal.prv.unique_identifier == prv1.unique_identifier
+		end
 	end
 
 	def change_prv_names(lv, str)
