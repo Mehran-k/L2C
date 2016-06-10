@@ -22,6 +22,18 @@ class CNF
 		update_with_identifier(literal.prv, literal.value)
 	end
 
+	def adjust_weights(weight_function)
+		new_function = weight_function
+		@clauses.each do |clause|
+			clause.literals.each do |literal|
+				if !literal.prv.full_name.index("_r").nil?
+					new_function[literal.prv.core_name] = weight_function[literal.prv.core_name[0..literal.prv.core_name.index("_r")-1]]
+				end
+			end
+		end
+		return new_function
+	end
+
 	def shatter #all changes are done together. I may have to do one shattering, then call shatter again. Or even do it a few times until nothing changes
 		@clauses.each do |clause|
 			clause.constraints.each do |constraint|
@@ -47,6 +59,9 @@ class CNF
 					split(literal.prv, 0, 1)
 				end
 			end
+		end
+		@clauses.each do |clause|
+			clause.remove_duplicate_lvs
 		end
 		#I should add the case where a "friend(x,x)" and a "friend(x,y)" with no constraints exist in the model.
 	end
@@ -78,9 +93,7 @@ class CNF
 		@clauses.each do |clause|
 			clause.literals.each do |literal|
 				if(literal.prv.num_lvs != literal.prv.num_distinct_lvs)
-					puts literal.prv.my2string
 					new_prv = literal.prv.remove_same_lvs
-					puts new_prv.my2string
 					replace_all_prvs(literal.prv, new_prv)
 				end
 			end

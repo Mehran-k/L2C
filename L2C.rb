@@ -52,7 +52,8 @@ cnf.shatter
 cnf.replace_prvs_having_same_lv
 bo = BranchingOrder.new(cnf)
 order = bo.min_nested_loop_order(num_sls)
-wfomc = WFOMC.new(parser.weights, max_pop_size)
+weight_function = cnf.adjust_weights(parser.weights)
+wfomc = WFOMC.new(weight_function, max_pop_size)
 wfomc.set_order(order)
 cache = Cache.new
 cpp_core = wfomc.compile(cnf, cache)

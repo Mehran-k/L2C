@@ -1,11 +1,11 @@
 class PRV
 	attr_accessor :core_name, :full_name, :terms
 
-	def initialize(core_name, full_name, terms)
-		@core_name = core_name
-		@full_name = full_name
-		@terms = terms.map{|term| term.duplicate}
-	end
+	# def initialize(core_name, full_name, terms)
+	# 	@core_name = core_name
+	# 	@full_name = full_name
+	# 	@terms = terms.map{|term| term.duplicate}
+	# end
 
 	def initialize(name, terms)
 		@core_name = name
@@ -87,6 +87,7 @@ class PRV
 				prv.full_name += i.to_s
 			end
 		end
+		prv.core_name = prv.full_name
 		return prv
 	end
 

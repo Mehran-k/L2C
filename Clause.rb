@@ -52,6 +52,18 @@ class Clause
 		end
 	end
 
+	def remove_duplicate_lvs
+		lv_hash = Hash.new
+		new_logvars = Array.new
+		@logvars.each do |lv|
+			if lv_hash[lv.name].nil?
+				new_logvars << lv
+				lv_hash[lv.name] = true
+			end
+		end
+		@logvars = new_logvars
+	end
+
 	def replace_all_lvs(old_lv, new_term)
 		@literals.each {|literal| literal.prv.replace_all_lvs(old_lv, new_term)}
 		@logvars.each_with_index {|logvar, i| @logvars[i] = new_term if logvar.is_same_as(old_lv) and logvar.name == old_lv.name}
@@ -70,7 +82,13 @@ class Clause
 
 	def my2string
 		str = "<{" + @logvars.inject(""){|result, lv| result << (lv.name + ",")}.chop + "},"
-		str += (@literals.size == 0 ? "False" : @literals.inject(""){|result, lit| result << (lit.my2string + "v")}.chop) + ","
+		if @literals.size == 0 and @is_true 
+			str += "True,"
+		elsif @literals.size == 0
+			str += "False,"
+		else
+			str += @literals.inject(""){|result, lit| result << (lit.my2string + "v")}.chop + ","
+		end
 		@constraints.each {|constraint| str += constraint.my2string + "v"} 
 		return str.chop + ">" + (@is_true ? "(TRUE)" : "")
 	end
