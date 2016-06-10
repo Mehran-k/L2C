@@ -11,6 +11,7 @@ require './wfomc'
 require './cnf'
 require './constraint'
 require './cpphandler'
+require './branchingorder'
 
 #parameters
 order_heuristic = "MNL"
@@ -48,10 +49,22 @@ parser = Parser.new(content)
 parser.produce_cnf
 cnf = CNF.new(parser.formulae)
 cnf.shatter
-puts cnf.my2string
-puts "~~~~~"
 cnf.replace_prvs_having_same_lv
-puts cnf.my2string
+bo = BranchingOrder.new(cnf)
+order = bo.min_nested_loop_order(num_sls)
+wfomc = WFOMC.new(parser.weights, max_pop_size)
+wfomc.set_order(order)
+cache = Cache.new
+cpp_core = wfomc.compile(cnf, cache)
+doubles = wfomc.get_doubles
+puts cpp_core
+cpp_handler = CPPHandler.new(cpp_core, doubles)
+cpp_handler.execute(arguments["-f"].gsub(".wmc", ""), max_pop_size)
+
+# puts cnf.my2string
+# puts "~~~~~"
+# cnf.replace_prvs_having_same_lv
+# puts cnf.my2string
 
 # wfomc = WFOMC.new(parser.weights, max_pop_size)
 # wfomc.set_order(cnf.min_nested_loop_order(num_sls))

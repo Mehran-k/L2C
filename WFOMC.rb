@@ -1,5 +1,5 @@
 class WFOMC
-	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent, :doubles, :max_pop_size
+	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent, :doubles, :max_pop_size, :num_iterate
 
 	def initialize(weights, max_pop_size)
 		@weights = weights
@@ -8,6 +8,7 @@ class WFOMC
 		@indent = "    "
 		@doubles = Array.new
 		@max_pop_size = max_pop_size
+		@num_iterate = 0
 	end
 
 	def set_order(order)
@@ -44,9 +45,12 @@ class WFOMC
 
 	def compile(cnf, cache)
 
-		puts "vvvvvvvvvvvvvvvv"
+		puts "Compile was called with the follwing CNF:"
 		puts cnf.my2string
-		puts "^^^^^^^^^^^^^^^"
+		puts "\n"
+
+		# @num_iterate += 1
+		# exit if @num_iterate > 7
 
 		cnf_dup = cnf.duplicate
 		str = ""
@@ -54,6 +58,7 @@ class WFOMC
 		@counter += 1
 
 		if  cnf_dup.clauses.size == 0
+			puts "CNF was empty. Returning."
 			@noeffect_vars << "v#{save_counter}"
 			return "\n"
 		end
@@ -68,21 +73,26 @@ class WFOMC
 		#unit propagation
 		unit_clauses = cnf_dup.unit_clauses
 		if  unit_clauses.size > 0
-			puts "Unit Propagation"
 			str = "v#{save_counter}="
 			unit_clauses.each do |unit_clause|
+				puts "Unit Propagation on #{unit_clause.literals[0].prv.my2string}"
 				literal = unit_clause.literals[0]
 				if(@weights[literal.prv.core_name] != [0, 0])
 					str << (literal.value == "true" ? @weights[literal.prv.core_name][0].to_s : @weights[literal.prv.core_name][1].to_s) + "*" + literal.prv.psize + "+"
 				end
 				cnf_dup.propagate(unit_clause)
-				puts cnf_dup.my2string
 				cnf_dup.remove_resolved_constraints
 			end
+			puts "After unit propagation, we have the following CNF:"
+			puts cnf_dup.my2string
+			puts "\n"
 			if str == "v#{save_counter}=" #all unit clauses had weight 1
 				to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
 				cnf_dup.clauses -= to_evaluate
 				str2 = ""
+				puts "Now we call compile for the following CNF:"
+				puts cnf_dup.my2string
+				puts "\n"
 				compile(cnf_dup, cache).each_line {|line| str2 << line}
 				str2 << "v#{save_counter}=#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
 				return str2
@@ -92,6 +102,9 @@ class WFOMC
 				to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
 				cnf_dup.clauses -= to_evaluate
 				str2 = ""
+				puts "Now we call compile for the following CNF:"
+				puts cnf_dup.my2string
+				puts "\n"
 				compile(cnf_dup, cache).each_line {|line| str2 << line}
 				str2 << "v#{save_counter+1}=#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+2).to_s)};\n"
 				str2 << str;
@@ -103,11 +116,12 @@ class WFOMC
 		if  cc.size != 1
 			puts "the network is disconnected!"
 			product = ""#this is the product of all connected components
-			cc.each do |cc_cnf|
-				puts "Connected component"
+			cc.each_with_index do |cc_cnf, i|
+				puts "Connected component number: #{i+1} is as follows:"
 				puts cc_cnf.my2string
-				puts "$$$$$$$$"
+				puts "\n"
 				product += "v#{@counter}+"
+				puts "~~Calling compile for it~~"
 				compile(cc_cnf, cache).each_line {|line| str += line}
 			end
 			return str << "v#{save_counter}=#{product.chop};\n" #<< cache.add(cnf, "v#{save_counter}")
@@ -118,15 +132,39 @@ class WFOMC
 			puts "Grounding is disconnected with positions: #{decomposer_lv_pos}"
 			cnf_dup.decompose(decomposer_lv_pos, prv_pos)
 			cnf_dup.shatter
+			cnf_dup.replace_no_lv_prvs_with_rvs
+			cnf_dup.remove_resolved_constraints
+			puts "After decomposition, shattering, ..., the resulting CNF is as follows:"
+			puts cnf_dup.my2string
+			puts "\n"
 			compile(cnf_dup, cache).each_line {|line| str += line}
 			str += "v#{save_counter}=v#{save_counter + 1}*(#{pop_size});\n"
 			return str #+ cache.add(cnf, "v#{save_counter}")
 		end
 
-		# puts "branching on #{branch_prv.my_to_string}"
-		puts "~~~~~~~"
+		if cnf_dup.fo2
+			puts "There are only 2lv logvars and the grounding is disconnected"
+			has_neq_constraint = (cnf_dup.clauses[0].constraints.size > 0 ? true : false)
+			psize = cnf_dup.clauses[0].logvars[0].psize
+			cnf_dup.replace_individuals_for_fo2
+			cnf_dup.shatter
+			cnf_dup.replace_no_lv_prvs_with_rvs
+			cnf_dup.remove_resolved_constraints
+			str = ""
+			puts "After decomposition, shattering, ..., the CNF is as follows:"
+			puts cnf_dup.my2string
+			puts "\n"
+			compile(cnf_dup, cache).each_line {|line| str += line}
+			if has_neq_constraint
+				str += "v#{save_counter}=v#{save_counter+1}*(#{psize} * (#{psize} - 1) / 2.0);\n"
+			else
+				Helper.error("This case is still not supported!")
+			end
+			return str
+		end
+
 		branch_prv = cnf_dup.next_prv(@order)
-		puts "branching on: " + branch_prv.my2string
+		puts "No rules can be applied. Branching on: " + branch_prv.my2string
 
 		if  branch_prv.num_distinct_lvs == 0
 			cnf_dup.update(branch_prv.full_name, "true")
@@ -138,8 +176,18 @@ class WFOMC
 			to_evaluate2 = cnf_dup2.clauses.select{|clause| clause.can_be_evaluated}
 			cnf_dup2.clauses -= to_evaluate2
 
+			puts "The true branch has the following CNF:"
+			puts cnf_dup.my2string
+			puts "\n"
+
+			puts "The false branch has the following CNF:"
+			puts cnf_dup2.my2string			
+			puts "\n"
+
+			puts "~~~Going into the calles for the true branch~~~"
 			compile(cnf_dup, cache).each_line {|line| str << line}
 			save_counter2 = @counter
+			puts "~~~Going into the calles for the false branch~~~"
 			compile(cnf_dup2, cache).each_line {|line| str << line}
 
 			str += "v#{save_counter}=sum(#{@weights[branch_prv.core_name][0]}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)},#{@weights[branch_prv.core_name][1]}+#{eval_str(cnf_dup2, to_evaluate2, 'v' + (save_counter2).to_s)});\n"
@@ -157,7 +205,10 @@ class WFOMC
 			to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
 			cnf_dup.clauses -= to_evaluate
 
-			puts @max_pop_size
+			puts "The CNF after branching is as follows:"
+			puts cnf_dup.my2string
+			puts "\n"
+			
 			str += "double v#{save_counter}_arr[#{@max_pop_size}];\nfor(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"
 			compile(cnf_dup, cache).each_line {|line| str << @indent + line}
 			str += @indent + "v#{save_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+(#{@weights[branch_prv.core_name][0]}*#{loop_iterator}+#{@weights[branch_prv.core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n" + @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"

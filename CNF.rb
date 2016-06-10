@@ -202,6 +202,41 @@ class CNF
 		end
 	end
 
+	def fo2
+		@clauses.each do |clause|
+			return false if clause.logvars.size != 2
+			clause.literals.each do |literal|
+				return false if literal.prv.num_distinct_lvs != 2
+			end
+		end
+		return true
+	end
+
+	def replace_individuals_for_fo2
+		const1 = Constant.new("FO2_1")
+		const2 = Constant.new("FO2_2")
+		@clauses.each do |clause|
+			lv1 = clause.logvars[0]
+			lv2 = clause.logvars[1]
+			clause.replace_all_lvs(lv1, const1)
+			clause.replace_all_lvs(lv2, const2)
+		end
+		return true
+	end
+
+	def replace_no_lv_prvs_with_rvs
+		@clauses.each do |clause|
+			clause.literals.each do |literal|
+				if literal.prv.num_lvs == 0
+					new_prv = literal.prv.duplicate
+					new_prv.full_name = literal.prv.my2string.gsub("(", "_").gsub(")", "_").gsub(",", "_")
+					new_prv.terms = Array.new
+					replace_all_prvs(literal.prv, new_prv)
+				end
+			end
+		end
+	end
+
 	def get_decomposer_lv
 		possible_positions = Array.new #represents which lv of prvs can be potentially replaced by a constant
 		num_loop_itr = 1
@@ -258,104 +293,6 @@ class CNF
 		order.each {|prv_name| @clauses.each {|clause| clause.literals.each {|literal| return literal.prv if literal.prv.core_name == prv_name}}}
 	end
 
-	def min_nested_loop_order(num_iterations)#does hill climbing on the minTableSize order to minimize the number of nested loops
-		if  (num_iterations > (1..self.get_all_prv_names.size-1).reduce(1, :*)) #in the number of iterations is more than the maximum number of permutations, we can simply test all permutations
-			min_nested_loops = 9999
-			order = []
-			(get_all_prv_names).permutation.each do |new_order|
-				num_nested_loops = self.duplicate.num_nested_loops(new_order, min_nested_loops, 0)
-				if  num_nested_loops < min_nested_loops
-					min_nested_loops = num_nested_loops
-					order = new_order.dup
-				end
-			end
-		else #else we should do hill climbing num_iteration times
-			order = self.duplicate.min_table_size_order
-			# min_nested_loops = self.duplicate.num_nested_loops(order, 9999, 0) 
-			num_iterations.times do |i|
-				new_order = order.dup
-				r1 = rand(order.size-1) + 1
-				r2 = rand(order.size-1) + 1
-				r2 = rand(order.size-1) + 1 while(r2 == r1)
-				new_order[r1], new_order[r2] = new_order[r2], new_order[r1]
-				num_nested_loops = self.duplicate.num_nested_loops(new_order, min_nested_loops, 0)
-				if  num_nested_loops < min_nested_loops
-					min_nested_loops = num_nested_loops
-					order = new_order.dup
-				end
-			end	
-		end
-		return order
-	end
-
-	def min_table_size(parfactors, prv_sizes) #see Kazemi and Poole 2014 for full description
-		return [] if parfactors.keys.size == 0
-		#selecting nodes with more than 1 logical variables
-		to_elim_prv = nil
-		max_cfbf = 0
-		max_num_log_vars = 2
-		parfactors.keys.each do |prv_name|
-			if  prv_sizes[prv_name][0] > max_num_log_vars or (prv_sizes[prv_name][0] == max_num_log_vars and prv_sizes[prv_name][1] + 1 > max_cfbf)
-				max_num_log_vars = prv_sizes[prv_name][0]
-				max_cfbf = prv_sizes[prv_name][1] + 1
-				to_elim_prv = prv_name
-			end
-		end
-		#selecting the node with minimum CFBF
-		min_size = 999999999
-		if to_elim_prv.nil?
-			parfactors.keys.each do |prv_name|
-				prv_cfbf = parfactors[prv_name].inject(1){|result, neighbor| result *= (prv_sizes[neighbor][1] + 1)}
-				if  prv_cfbf < min_size or (prv_cfbf == min_size and prv_sizes[prv_name][1] > prv_sizes[to_elim_prv][1])
-					to_elim_prv = prv_name
-					min_size = prv_cfbf
-				end
-			end
-		end
-		new_parfactor = parfactors.delete(to_elim_prv)
-		new_parfactor.each {|prv_name| parfactors[prv_name] = (parfactors[prv_name] - [to_elim_prv]) | (new_parfactor - [prv_name])}
-		return min_table_size(parfactors, prv_sizes) + [to_elim_prv]
-	end
-
-	def min_table_size_order
-		parfactors = Hash.new #parfactor[prv] shows the factor that will be generated if we remove prv
-		self.duplicate.clauses.each do |clause|
-			clause_prv_names = clause.literals.map{|literal| literal.name}
-			clause.literals.each {|literal| parfactors[literal.name] = parfactors[literal.name].to_a | (clause_prv_names - [literal.name])}
-		end
-		return min_table_size(parfactors, get_all_prv_sizes)
-	end
-
-	def num_nested_loops(order, best_global, num_local_loops)
-		return 0 if @clauses.size == 0
-		@clauses.select!{|clause| not clause.can_be_evaluated}
-		cc = connected_components
-		return cc.inject(0){|result, cc_cnf| result = [result, cc_cnf.num_nested_loops(order, best_global, num_local_loops)].max} if cc.size != 1
-		pop_size, decomposer_lv_pos, prv_pos = get_decomposer_lv
-		if not decomposer_lv_pos.nil?
-			decompose(decomposer_lv_pos, prv_pos)
-			return num_nested_loops(order, best_global, num_local_loops) 
-		end
-		branch_prv = next_prv(order)
-		if branch_prv.num_lvs == 0
-			cnf_dup1 = duplicate
-			cnf_dup1.update(branch_prv.name, "true")
-			nnl1 = cnf_dup1.num_nested_loops(order, best_global, num_local_loops)
-			return 1000 if nnl1 >= 1000
-			cnf_dup2 = duplicate
-			cnf_dup2.update(branch_prv.name, "false")
-			nnl2 = cnf_dup2.num_nested_loops(order, best_global, num_local_loops)
-			return [nnl1, nnl2].max
-		elsif branch_prv.num_lvs == 1
-			return 1000 if (1 + num_local_loops) >= best_global
-			branch_lv = branch_prv.first_lv
-			branch(branch_prv, "0")
-			apply_branch_observation(branch_prv)
-			return 1 + num_nested_loops(order, best_global, 1 + num_local_loops)
-		end
-		return 1000
-	end
-
 	# def has_no_lvs
 	# 	@clauses.each {|clause| clause.literals.each {|literal| return false if literal.prv.num_lvs > 0}}
 	# 	return true
@@ -385,6 +322,7 @@ class CNF
 	end
 
 	def my2string
+		return "The CNF has no Clauses\n" if @clauses.size == 0
 		str = ""
 		@clauses.each do |clause|
 			str += clause.my2string + "\n"
