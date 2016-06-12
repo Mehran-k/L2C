@@ -5,9 +5,9 @@ predicate Likes(people, movie)
 predicate R(people)
 predicate S(people)
 predicate T(people)
-predicate F 1.1 2.2
+predicate F(people, people) 1.5 1
 predicate Friend(people, people)
 
 Friend(x,x)
-!S(x) v !Friend(x,y) v T(y)
+F(x,y) v !S(x) v !Friend(x,y) v T(y)
 

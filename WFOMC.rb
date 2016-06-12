@@ -31,7 +31,7 @@ class WFOMC
 			clause.literals.each do |literal|
 				if not all_prvs.include? literal.name and not already_counted.include? literal.name
 					if(@weights[literal.prv.core_name] == [0.0, 0.0])
-						str += "0.693147*#{literal.prv.psize}+"
+						str += "0.6931471805*#{literal.prv.psize}+"
 					else
 						str += "sum(#{@weights[literal.prv.core_name][0]}, #{@weights[literal.prv.core_name][1]})*#{literal.prv.psize}+"
 					end

@@ -1,12 +1,6 @@
 class PRV
 	attr_accessor :core_name, :full_name, :terms
 
-	# def initialize(core_name, full_name, terms)
-	# 	@core_name = core_name
-	# 	@full_name = full_name
-	# 	@terms = terms.map{|term| term.duplicate}
-	# end
-
 	def initialize(name, terms)
 		@core_name = name
 		@full_name = name
@@ -21,11 +15,11 @@ class PRV
 		return Literal.new(self, value)
 	end
 
-	def num_lvs
+	def num_lvs #returns the number of lvs: F(x,x) has two lvs
 		return @terms.select{|term| term.class == LogVar}.size
 	end
 
-	def num_distinct_lvs #returns number of lvs with different names
+	def num_distinct_lvs #returns number of lvs with different names: F(x,x) has one distinct lv
 		return @terms.select{|term| term.class == LogVar}.map{|lv| lv.name}.uniq.size
 	end
 
@@ -38,17 +32,17 @@ class PRV
 	end
 
 	def first_lv_with_type(type)
-		return @terms.select{|term| term.class == LogVar and term.type == type}.first
+		@terms.each {|term| return term if term.class == LogVar and term.type == type}
+		return nil
 	end
 
 	def has_lv_with_name(name)
-		@terms.select{|term| term.class == LogVar and term.name == name}.empty? ? false : true
+		@terms.each{|term| return true if term.class == LogVar and term.name == name}
+		return false
 	end
 
 	def index_lv_with_name(name)
-		@terms.each_with_index do |term, i|
-			return i if term.class == LogVar and term.name == name
-		end
+		@terms.each_with_index {|term, i| return i if term.class == LogVar and term.name == name}
 		return -1
 	end
 

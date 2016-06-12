@@ -60,16 +60,11 @@ class CNF
 				end
 			end
 		end
-		@clauses.each do |clause|
-			clause.remove_duplicate_lvs
-		end
-		#I should add the case where a "friend(x,x)" and a "friend(x,y)" with no constraints exist in the model.
+		@clauses.each {|clause| clause.remove_duplicate_lvs}
 	end
 
 	def remove_lv_neq_const(lv, const)
-		@clauses.each do |clause|
-			clause.remove_lv_neq_const(lv, const)
-		end
+		@clauses.each {|clause| clause.remove_lv_neq_const(lv, const)}
 	end
 
 	def split(prv, lv1_index, lv2_index)
