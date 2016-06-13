@@ -150,6 +150,12 @@ class CNF
 	def branch(branch_prv, num_true)
 		lv = branch_prv.first_lv
 
+		# @clauses.each do |clause|
+		# 	clause.literals.each do |literal|
+		# 		literal.prv.name_addendum = Hash.new
+		# 	end
+		# end
+
 		something_changed = true
 		while something_changed
 			something_changed = false
@@ -161,10 +167,10 @@ class CNF
 						new_lv1 = LogVar.new(lit_lv.name + "1", lit_lv.domain, num_true, lit_lv.type + "1")
 						new_lv2 = LogVar.new(lit_lv.name + "2", lit_lv.domain, lv.psize.to_s +  "-" + num_true, lit_lv.type + "2")
 						clause1 = clause.duplicate
-						clause1.change_prv_names(lit_lv, "1")
+						clause1.add_to_prvs_name_addendum(lit_lv, "1")
 						clause1.replace_all_lvs(lit_lv, new_lv1)
 						clause2 = clause.duplicate
-						clause2.change_prv_names(lit_lv, "2")
+						clause2.add_to_prvs_name_addendum(lit_lv, "2")
 						clause2.replace_all_lvs(lit_lv, new_lv2)
 						@clauses += [clause1, clause2]
 						@clauses -= [clause]
@@ -173,11 +179,24 @@ class CNF
 				end
 			end
 		end
+
+		@clauses.each do |clause|
+			clause.literals.each do |literal|
+				literal.prv.confirm_name_addendum
+			end
+		end
+
+		puts "$$$$$$$$$$$$$$$$$$"
+		puts my2string
+		puts "$$$$$$$$$$$$$$$$$$"
 	end
 
 	def apply_branch_observation(branch_prv)
 		update(branch_prv.full_name + "1", "true")
 		update(branch_prv.full_name + "2", "false")
+		puts "~~~~~~~~~~~~~~~~~~~~"
+		puts my2string
+		puts "~~~~~~~~~~~~~~~~~~~~"
 	end
 
 	def remove_resolved_constraints

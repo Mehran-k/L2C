@@ -76,8 +76,11 @@ class Clause
 		end
 	end
 
-	def change_prv_names(lv, str)
-		@literals.each {|literal| literal.prv.full_name += str if literal.prv.has_lv_with_name(lv.name)}
+	def add_to_prvs_name_addendum(lv, str) #keep the indexes and update at the last
+		@literals.each do |literal|
+			lv_index = literal.prv.index_lv_with_name(lv.name)
+			literal.prv.name_addendum[lv_index] = str if lv_index != -1 #i.e. the literal has the input lv
+		end
 	end
 
 	def my2string

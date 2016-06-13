@@ -1,10 +1,18 @@
 class PRV
-	attr_accessor :core_name, :full_name, :terms
+	attr_accessor :core_name, :full_name, :terms, :name_addendum
 
 	def initialize(name, terms)
 		@core_name = name
 		@full_name = name
 		@terms = terms.map{|term| term.duplicate}
+		@name_addendum = Hash.new
+	end
+
+	def confirm_name_addendum
+		@name_addendum.keys.sort.each do |key|
+			@full_name += @name_addendum[key]
+		end
+		@name_addendum = Hash.new
 	end
 
 	def num_terms
@@ -67,7 +75,7 @@ class PRV
 	end
 
 	def remove_same_lvs
-		return duplicate if num_distinct_lvs == num_lvs
+		return self.duplicate if num_distinct_lvs == num_lvs
 		term_visited = Hash.new
 		prv = self.duplicate
 		prv.terms = Array.new
