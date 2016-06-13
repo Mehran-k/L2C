@@ -18,6 +18,10 @@ class CNF
 	end
 
 	def propagate(unit_clause)
+		puts unit_clause.my2string
+		puts "~~~~"
+		puts self.my2string
+		puts "~~~~~~~~~~~~~~~~~~"
 		literal = unit_clause.literals[0]
 		update_with_identifier(literal.prv, literal.value)
 	end
@@ -150,12 +154,6 @@ class CNF
 	def branch(branch_prv, num_true)
 		lv = branch_prv.first_lv
 
-		# @clauses.each do |clause|
-		# 	clause.literals.each do |literal|
-		# 		literal.prv.name_addendum = Hash.new
-		# 	end
-		# end
-
 		something_changed = true
 		while something_changed
 			something_changed = false
@@ -185,23 +183,22 @@ class CNF
 				literal.prv.confirm_name_addendum
 			end
 		end
-
-		puts "$$$$$$$$$$$$$$$$$$"
-		puts my2string
-		puts "$$$$$$$$$$$$$$$$$$"
 	end
 
 	def apply_branch_observation(branch_prv)
 		update(branch_prv.full_name + "1", "true")
 		update(branch_prv.full_name + "2", "false")
-		puts "~~~~~~~~~~~~~~~~~~~~"
-		puts my2string
-		puts "~~~~~~~~~~~~~~~~~~~~"
 	end
 
 	def remove_resolved_constraints
 		@clauses.each do |clause|
 			clause.constraints.select!{|constraint| !constraint.is_resolved}
+		end
+	end
+
+	def ignore_all_constraints
+		@clauses.each do |clause|
+			clause.constraints = Array.new
 		end
 	end
 

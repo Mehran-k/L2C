@@ -53,7 +53,7 @@ class Parser
 				@predicates[predicate_name] = domains.map{|d| @domains[d]}
 				@weights[predicate_name] = [Math.log(pos_weight), Math.log(neg_weight)]
 
-			elsif line.size == 0 or line.start_with? "//"
+			elsif line.gsub(" ", "").size == 0 or line.gsub(" ", "").start_with? "//"
 				#this is an empty or a comment line
 
 			else #formula

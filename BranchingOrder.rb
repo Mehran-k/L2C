@@ -2,15 +2,16 @@ class BranchingOrder
 	attr_accessor :cnf
 
 	def initialize(cnf)
-		@cnf = cnf
+		@cnf = cnf.duplicate
+		@cnf.ignore_all_constraints
 	end
 
 	def min_nested_loop_order(num_iterations)#does hill climbing on the minTableSize order to minimize the number of nested loops
 		if  (num_iterations > (1..@cnf.get_all_prv_names.size-1).reduce(1, :*)) #in the number of iterations is more than the maximum number of permutations, we can simply test all permutations
 			min_nested_loops = 9999
 			order = []
-			(get_all_prv_names).permutation.each do |new_order|
-				num_nested_loops = @cnf.duplicate.num_nested_loops(new_order, min_nested_loops, 0)
+			(@cnf.get_all_prv_names).permutation.each do |new_order|
+				num_nested_loops = num_nested_loops(@cnf, new_order, min_nested_loops, 0)
 				if  num_nested_loops < min_nested_loops
 					min_nested_loops = num_nested_loops
 					order = new_order.dup
@@ -18,14 +19,14 @@ class BranchingOrder
 			end
 		else #else we should do hill climbing num_iteration times
 			order = min_table_size_order
-			# min_nested_loops = @cnf.duplicate.num_nested_loops(order, 9999, 0) 
+			min_nested_loops = num_nested_loops(@cnf, order, 9999, 0) 
 			num_iterations.times do |i|
 				new_order = order.dup
 				r1 = rand(order.size-1) + 1
 				r2 = rand(order.size-1) + 1
 				r2 = rand(order.size-1) + 1 while(r2 == r1)
 				new_order[r1], new_order[r2] = new_order[r2], new_order[r1]
-				num_nested_loops = @cnf.duplicate.num_nested_loops(new_order, min_nested_loops, 0)
+				num_nested_loops = num_nested_loops(@cnf, new_order, min_nested_loops, 0)
 				if  num_nested_loops < min_nested_loops
 					min_nested_loops = num_nested_loops
 					order = new_order.dup
@@ -73,32 +74,53 @@ class BranchingOrder
 		return min_table_size(parfactors, @cnf.get_all_prv_sizes)
 	end
 
-	def num_nested_loops(order, best_global, num_local_loops)
-		return 0 if @clauses.size == 0
-		@clauses.select!{|clause| not clause.can_be_evaluated}
-		cc = connected_components
-		return cc.inject(0){|result, cc_cnf| result = [result, cc_cnf.num_nested_loops(order, best_global, num_local_loops)].max} if cc.size != 1
-		pop_size, decomposer_lv_pos, prv_pos = get_decomposer_lv
-		if not decomposer_lv_pos.nil?
-			decompose(decomposer_lv_pos, prv_pos)
-			return num_nested_loops(order, best_global, num_local_loops) 
+	def num_nested_loops(cnf, order, best_global, num_local_loops)
+		cnf_dup = cnf.dup
+		return 0 if cnf_dup.clauses.size == 0
+		cnf_dup.clauses.select!{|clause| not clause.can_be_evaluated}
+
+		unit_clauses = cnf_dup.unit_clauses
+		if not unit_clauses.empty?
+			unit_clauses.each do |unit_clause|
+				cnf_dup.propagate(unit_clause) if(unit_clause.literals.size > 0) #previous unit clauses may make others disapper
+			end
+			return num_nested_loops(cnf_dup, order, best_global, num_local_loops)
 		end
-		branch_prv = next_prv(order)
-		if branch_prv.num_lvs == 0
-			cnf_dup1 = duplicate
-			cnf_dup1.update(branch_prv.name, "true")
-			nnl1 = cnf_dup1.num_nested_loops(order, best_global, num_local_loops)
+
+		cc = cnf_dup.connected_components
+		return cc.inject(0){|result, cc_cnf| result = [result, num_nested_loops(cc_cnf, order, best_global, num_local_loops)].max} if cc.size != 1
+		
+		pop_size, decomposer_lv_pos, prv_pos = cnf_dup.get_decomposer_lv
+		if not decomposer_lv_pos.nil?
+			cnf_dup.decompose(decomposer_lv_pos, prv_pos)
+			cnf_dup.shatter
+			cnf_dup.replace_no_lv_prvs_with_rvs
+			return num_nested_loops(cnf_dup, order, best_global, num_local_loops) 
+		end
+
+		if cnf_dup.fo2
+			cnf_dup.replace_individuals_for_fo2
+			cnf_dup.shatter
+			cnf_dup.replace_no_lv_prvs_with_rvs
+			return num_nested_loops(cnf_dup, order, best_global, num_local_loops)
+		end
+
+		branch_prv = cnf_dup.next_prv(order)
+		if  branch_prv.num_lvs == 0
+			cnf_dup1 = cnf_dup.duplicate
+			cnf_dup1.update(branch_prv.full_name, "true")
+			nnl1 = num_nested_loops(cnf_dup1, order, best_global, num_local_loops)
 			return 1000 if nnl1 >= 1000
-			cnf_dup2 = duplicate
-			cnf_dup2.update(branch_prv.name, "false")
-			nnl2 = cnf_dup2.num_nested_loops(order, best_global, num_local_loops)
+			cnf_dup2 = cnf_dup.duplicate
+			cnf_dup2.update(branch_prv.full_name, "false")
+			nnl2 = num_nested_loops(cnf_dup2, order, best_global, num_local_loops)
 			return [nnl1, nnl2].max
 		elsif branch_prv.num_lvs == 1
 			return 1000 if (1 + num_local_loops) >= best_global
 			branch_lv = branch_prv.first_lv
-			branch(branch_prv, "0")
-			apply_branch_observation(branch_prv)
-			return 1 + num_nested_loops(order, best_global, 1 + num_local_loops)
+			cnf_dup.branch(branch_prv, "0")
+			cnf_dup.apply_branch_observation(branch_prv)
+			return 1 + num_nested_loops(cnf_dup, order, best_global, 1 + num_local_loops)
 		end
 		return 1000
 	end

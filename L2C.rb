@@ -15,7 +15,7 @@ require './branchingorder'
 
 #parameters
 order_heuristic = "MNL"
-num_sls = 0
+num_sls = 2
 max_pop_size = 100
 
 #arguments
