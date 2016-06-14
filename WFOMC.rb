@@ -1,5 +1,5 @@
 class WFOMC
-	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent, :doubles, :max_pop_size, :num_iterate
+	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent, :doubles, :max_pop_size, :num_iterate, :new_line
 
 	def initialize(weights, max_pop_size)
 		@weights = weights
@@ -9,6 +9,7 @@ class WFOMC
 		@doubles = Array.new
 		@max_pop_size = max_pop_size
 		@num_iterate = 0
+		@new_line = "\n"
 	end
 
 	def set_order(order)
@@ -197,10 +198,21 @@ class WFOMC
 			return str
 
 		elsif branch_prv.num_distinct_lvs == 1
-			loop_iterator = "i_" + branch_prv.full_name + "_i"
-			str += "C_#{loop_iterator}=0;#{@new_line}"
-			@doubles |= ["C_#{loop_iterator}"]
+			array_counter = save_counter
+			str += "double v#{array_counter}_arr[MAX];\n"
+			#the case where the prv is true for none of the individuals
+			cnf_dup_0 = cnf.duplicate
+			clause_0 = Clause.new(branch_prv.logvars, [branch_prv.lit("false")], Array.new)
+			cnf_dup_0.clauses << clause_0
+			compile(cnf_dup_0, cache).each_line {|line| str << line}
+
+			str += "v#{array_counter}_arr[0]=v#{save_counter+1};\n"
+			save_counter = @counter
+
 			branch_lv = branch_prv.first_lv
+			loop_iterator = "i_" + branch_prv.full_name + "_i"
+			str += "C_#{loop_iterator}=logs[#{branch_lv.psize}];#{@new_line}"
+			@doubles |= ["C_#{loop_iterator}"]
 			cnf_dup.branch(branch_prv, "#{loop_iterator}")
 			cnf_dup.apply_branch_observation(branch_prv)
 			cnf_dup.remove_resolved_constraints
@@ -211,17 +223,29 @@ class WFOMC
 			puts cnf_dup.my2string
 			puts "\n"
 			
-			str += "double v#{save_counter}_arr[MAX];\nfor(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"
+			str += "for(int #{loop_iterator}=1;#{loop_iterator}<#{branch_lv.psize};#{loop_iterator}++){\n"
 			compile(cnf_dup, cache).each_line {|line| str << @indent + line}
 			if(@weights[branch_prv.core_name] == [0, 0])
-				str << @indent + "v#{save_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
+				str << @indent + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
 			else
-				str << @indent + "v#{save_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+(#{@weights[branch_prv.core_name][0]}*#{loop_iterator}+#{@weights[branch_prv.core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
+				str << @indent + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+(#{@weights[branch_prv.core_name][0]}*#{loop_iterator}+#{@weights[branch_prv.core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
 			end
 			str << @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
 			
 			#str += @indent + "v#{save_counter}=sum(v#{save_counter},C_#{loop_iterator}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)});\n" + @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-log(#{loop_iterator}+1))+log((#{branch_lv.psize})-#{loop_iterator});#{@new_line}"
-			return str + "}\n" + "v#{save_counter}=sum_arr(v#{save_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{save_counter}")
+			str += "}\n"
+
+			#the case where prv is for all individuals
+			save_counter = @counter
+			#str += "if(#{branch_lv.psize} != 0){\n"  ~~~No population will ever be zero~~~
+			cnf_dup_n = cnf.duplicate
+			clause_n = Clause.new(branch_prv.logvars, [branch_prv.lit("true")], Array.new)
+			cnf_dup_n.clauses << clause_n
+			compile(cnf_dup_n, cache).each_line {|line| str << line}
+
+			str += "v#{array_counter}_arr[#{branch_lv.psize}]=v#{save_counter};\n"
+			str += "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{save_counter}")
+			return str
 		else
 			puts cnf_dup.my2string
 			return "(Two lvs)\n"
