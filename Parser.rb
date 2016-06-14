@@ -100,7 +100,7 @@ class Parser
 						constraints << Constraint.new(all_logvars[spl[0]], all_logvars[spl[1]], "!=")
 					end
 				end
-				clause = Clause.new(all_logvars.values, literals, constraints)
+				clause = Clause.new(literals, constraints)
 				@formulae << clause
 			end	
 		end
@@ -228,6 +228,8 @@ class Parser
 	def check_domain_size(dsize, i)
 		if !Helper.all_digit(dsize)
 			Helper.error("Invalid domain size in line #{i}")
+		elsif dsize.to_i == 0
+			Helper.error("Invalid domain size in line #{i}: domain size cannot be zero")
 		end
 	end
 

@@ -1,8 +1,7 @@
 class Clause
-	attr_accessor :logvars, :literals, :is_true, :constraints
+	attr_accessor :literals, :is_true, :constraints
 
-	def initialize(logvars, literals, constraints)
-		@logvars = logvars.map{|lv| lv.duplicate}
+	def initialize(literals, constraints)
 		@literals = literals.map{|lit| lit.duplicate}
 		@is_true = false
 		@constraints = constraints
@@ -12,8 +11,14 @@ class Clause
 		not @is_true and @literals.size == 0
 	end
 
-	def psize
-		@logvars.select{|lv| lv.class == LogVar}.size == 0 ? "1" : (@logvars.select{|lv| lv.class == LogVar}.inject("(") {|result, lv| result += lv.psize + "*"}.chop + ")")
+	def num_distinct_lvs
+		lv_hash = Hash.new
+		@literals.each do |literal|
+			literal.prv.logvars.each do |lv|
+				lv_hash[lv.name] = "true"
+			end
+		end
+		return lv_hash.keys.size
 	end
 
 	def can_be_evaluated
@@ -32,9 +37,6 @@ class Clause
 	end
 
 	def remove_lv_neq_const(lv, const)
-		@logvars.each_with_index do |clause_lv, i|
-			logvars[i].decrement_psize if clause_lv.is_same_as(lv)
-		end
 		@literals.each do |literal|
 			literal.prv.logvars.each_with_index do |prv_lv, i|
 				literal.prv.logvars[i].decrement_psize if prv_lv.is_same_as(lv)	
@@ -52,21 +54,8 @@ class Clause
 		end
 	end
 
-	def remove_duplicate_lvs
-		lv_hash = Hash.new
-		new_logvars = Array.new
-		@logvars.each do |lv|
-			if lv_hash[lv.name].nil?
-				new_logvars << lv
-				lv_hash[lv.name] = true
-			end
-		end
-		@logvars = new_logvars
-	end
-
 	def replace_all_lvs(old_lv, new_term)
 		@literals.each {|literal| literal.prv.replace_all_lvs(old_lv, new_term)}
-		@logvars.each_with_index {|logvar, i| @logvars[i] = new_term if logvar.is_same_as(old_lv) and logvar.name == old_lv.name}
 		@constraints.each {|constraint| constraint.replace_terms(old_lv, new_term)}
 	end
 
@@ -84,16 +73,18 @@ class Clause
 	end
 
 	def my2string
-		str = "<{" + @logvars.inject(""){|result, lv| result << (lv.name + ",")}.chop + "},"
-		if @literals.size == 0 and @is_true 
-			str += "True,"
-		elsif @literals.size == 0
-			str += "False,"
+		str = "<"
+		if @is_true 
+			str += "True"
+		elsif is_false == 0
+			str += "False"
 		else
-			str += @literals.inject(""){|result, lit| result << (lit.my2string + "v")}.chop + ","
+			str += @literals.map{|lit| lit.my2string}.join("v")
 		end
-		@constraints.each {|constraint| str += constraint.my2string + "v"} 
-		return str.chop + ">" + (@is_true ? "(TRUE)" : "")
+		if(@constraints.size != 0)
+			str << "," + @constraints.map{|constraint| constraint.my2string}.join("v")
+		end
+		return str + ">" + (@is_true ? "(TRUE)" : "")
 	end
 
 	def duplicate

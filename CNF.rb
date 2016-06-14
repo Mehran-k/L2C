@@ -64,7 +64,7 @@ class CNF
 				end
 			end
 		end
-		@clauses.each {|clause| clause.remove_duplicate_lvs}
+		# @clauses.each {|clause| clause.remove_duplicate_lvs}
 	end
 
 	def remove_lv_neq_const(lv, const)
@@ -228,7 +228,7 @@ class CNF
 
 	def fo2
 		@clauses.each do |clause|
-			return false if clause.logvars.size != 2
+			return false if clause.num_distinct_lvs != 2
 			clause.literals.each do |literal|
 				return false if literal.prv.num_distinct_lvs != 2
 			end
@@ -335,11 +335,11 @@ class CNF
 					clause.replace_all_lvs(lv, const)
 				end
 			end
-			clause.logvars.select{|lv| lv.class == LogVar}.each do |lv| #some lvs might be already replaced
-				const = Constant.new((clause_type_counts[lv.type].to_i + 1).to_s << ":" << lv.type << ":" << lv.psize.to_s)
-				clause_type_counts[lv.type] = clause_type_counts[lv.type].to_i + 1
-				clause.replace_all_lvs(lv, const)
-			end
+			# clause.logvars.select{|lv| lv.class == LogVar}.each do |lv| #some lvs might be already replaced
+			# 	const = Constant.new((clause_type_counts[lv.type].to_i + 1).to_s << ":" << lv.type << ":" << lv.psize.to_s)
+			# 	clause_type_counts[lv.type] = clause_type_counts[lv.type].to_i + 1
+			# 	clause.replace_all_lvs(lv, const)
+			# end
 			clause_strings << clause.my2string
 		end
 		return clause_strings.sort.join

@@ -200,9 +200,9 @@ class WFOMC
 		elsif branch_prv.num_distinct_lvs == 1
 			array_counter = save_counter
 			str += "double v#{array_counter}_arr[MAX];\n"
-			#the case where the prv is true for none of the individuals
+			#the case where the prv is true for no individuals
 			cnf_dup_0 = cnf.duplicate
-			clause_0 = Clause.new(branch_prv.logvars, [branch_prv.lit("false")], Array.new)
+			clause_0 = Clause.new([branch_prv.lit("false")], Array.new)
 			cnf_dup_0.clauses << clause_0
 			compile(cnf_dup_0, cache).each_line {|line| str << line}
 
@@ -235,16 +235,16 @@ class WFOMC
 			#str += @indent + "v#{save_counter}=sum(v#{save_counter},C_#{loop_iterator}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)});\n" + @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-log(#{loop_iterator}+1))+log((#{branch_lv.psize})-#{loop_iterator});#{@new_line}"
 			str += "}\n"
 
-			#the case where prv is for all individuals
+			#the case where the prv is true for all individuals
 			save_counter = @counter
 			#str += "if(#{branch_lv.psize} != 0){\n"  ~~~No population will ever be zero~~~
 			cnf_dup_n = cnf.duplicate
-			clause_n = Clause.new(branch_prv.logvars, [branch_prv.lit("true")], Array.new)
+			clause_n = Clause.new([branch_prv.lit("true")], Array.new)
 			cnf_dup_n.clauses << clause_n
 			compile(cnf_dup_n, cache).each_line {|line| str << line}
 
 			str += "v#{array_counter}_arr[#{branch_lv.psize}]=v#{save_counter};\n"
-			str += "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{save_counter}")
+			str += "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{array_counter}")
 			return str
 		else
 			puts cnf_dup.my2string
