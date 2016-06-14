@@ -63,12 +63,12 @@ class WFOMC
 			return ""
 		end
 
-		# cache_value = cache.get(cnf_dup)
-		# if not cache_value.nil?
-		# 	q_number = cache_value[0..cache_value.index(":")-1]
-		# 	return "v#{save_counter}=q#{q_number}.front(); q#{q_number}.pop();\n" 
-		# end
-		# return "v#{save_counter}=cache.at(\"#{cache_value}\");\n" if not cache_value.nil?
+		cache_value = cache.get(cnf_dup)
+		if not cache_value.nil?
+			q_number = cache_value[0..cache_value.index(":")-1]
+			return "v#{save_counter}=q#{q_number}.front(); q#{q_number}.pop();\n" 
+		end
+		return "v#{save_counter}=cache.at(\"#{cache_value}\");\n" if not cache_value.nil?
 
 		#unit propagation
 		unit_clauses = cnf_dup.unit_clauses
@@ -126,7 +126,7 @@ class WFOMC
 				puts "~~Calling compile for it~~"
 				compile(cc_cnf, cache).each_line {|line| str += line}
 			end
-			return str << "v#{save_counter}=#{product.chop};\n" #<< cache.add(cnf, "v#{save_counter}")
+			return str << "v#{save_counter}=#{product.chop};\n" << cache.add(cnf, "v#{save_counter}")
 		end
 
 		pop_size, decomposer_lv_pos, prv_pos = cnf_dup.get_decomposer_lv
@@ -141,7 +141,7 @@ class WFOMC
 			puts "\n"
 			compile(cnf_dup, cache).each_line {|line| str += line}
 			str += "v#{save_counter}=v#{save_counter + 1}*(#{pop_size});\n"
-			return str #+ cache.add(cnf, "v#{save_counter}")
+			return str + cache.add(cnf, "v#{save_counter}")
 		end
 
 		if cnf_dup.fo2
@@ -162,7 +162,7 @@ class WFOMC
 			else
 				Helper.error("This case is still not supported!")
 			end
-			return str
+			return str + cache.add(cnf, "v#{save_counter}")
 		end
 
 		branch_prv = cnf_dup.next_prv(@order)
@@ -193,7 +193,7 @@ class WFOMC
 			compile(cnf_dup2, cache).each_line {|line| str << line}
 
 			str += "v#{save_counter}=sum(#{@weights[branch_prv.core_name][0]}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)},#{@weights[branch_prv.core_name][1]}+#{eval_str(cnf_dup2, to_evaluate2, 'v' + (save_counter2).to_s)});\n"
-			# str += cache.add(cnf, "v#{save_counter}")
+			str += cache.add(cnf, "v#{save_counter}")
 			return str
 
 		elsif branch_prv.num_distinct_lvs == 1
@@ -221,7 +221,7 @@ class WFOMC
 			str << @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
 			
 			#str += @indent + "v#{save_counter}=sum(v#{save_counter},C_#{loop_iterator}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)});\n" + @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-log(#{loop_iterator}+1))+log((#{branch_lv.psize})-#{loop_iterator});#{@new_line}"
-			return str + "}\n" + "v#{save_counter}=sum_arr(v#{save_counter}_arr, #{branch_lv.psize});" + "\n" #+ cache.add(cnf, "v#{save_counter}")
+			return str + "}\n" + "v#{save_counter}=sum_arr(v#{save_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{save_counter}")
 		else
 			puts cnf_dup.my2string
 			return "(Two lvs)\n"

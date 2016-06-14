@@ -1,34 +1,35 @@
 class Cache
-	attr_accessor :memory, :counter
+	attr_accessor :memory, :counter, :queues
 
 	def initialize()
 		@memory = Hash.new
 		@counter = 0
 	end
 
-	def queues
+	def queues_declaration
+		return "" if queues.empty?
 		str = "queue<double> "
-		@counter.times.each {|i| str += "q#{i+1},"}
-		str = str.chop + ";"
+		str += queues.join(",") + ";\n"
+		return str
 	end
 
-	def get(mln)
-		identifier = mln.unique_identifier
+	def get(cnf)
+		identifier = cnf.unique_identifier
 		return nil if @memory[identifier].nil?
-		@memory[identifier][0] = "true"
+		@memory[identifier][0] += 1 #counts the number of times it has ben used
 		return @memory[identifier][1][1..-2] #[1..-2] is because there is an extra " at the beginning and the end of the string
 	end
 
-	def add(mln, value)
-		return "" if mln.has_no_lvs
-		identifier = mln.unique_identifier
+	def add(cnf, value)
+		return "" if cnf.has_no_lvs
+		identifier = cnf.unique_identifier
 		@counter += 1
-		@memory[identifier] = ["false", "\"#{@counter}:#{str_inspect(identifier)}\""]
+		@memory[identifier] = [0, "\"#{@counter}:#{str_inspect(identifier)}\""] #0 indicates it has not been used yet.
 		return "q#{@counter}.push(#{value});\n"
 		# return "hit_#{@counter}:cache.insert(pair<string, double>(" + @memory[identifier][1] + ",#{value}));\n"
 	end
 
-	def str_inspect(str) #gets an MLN identifier and removes the parts that are not necessary for the c++ program
+	def str_inspect(str) #gets a cnf identifier and removes the parts that are not necessary for the c++ program
 		new_str = ""
 		i_i_list = Array.new #we keep the list of i_..._i variables, because we only need to know their value once.
 		while str.include? "_i"
@@ -46,11 +47,24 @@ class Cache
 	end
 
 	def remove_inserts(c_prog)
+		@queues = Array.new
 		new_prog = ""
+		q_usage = Hash.new
 		c_prog.each_line do |line|
 			if line.include? ".push("
 				q_number = line[line.index("q")..line.index(".")-1]
-				new_prog += line if c_prog.include? "#{q_number}.front()"
+				used_count = c_prog.scan(/#{q_number}.front()/).count
+				new_push = ""
+				used_count.times.each do |i|
+					new_push += line.gsub("#{q_number}", "#{q_number}#{i+1}")
+					@queues << "#{q_number}#{i+1}"
+				end
+				c_prog.gsub(line, "")
+				new_prog += new_push
+			elsif line.include? ".front("
+				q_number = line[line.index("q")..line.index(".")-1]
+				q_usage[q_number] = q_usage[q_number].to_i + 1
+				new_prog += line.gsub("#{q_number}.front(); #{q_number}.pop();", "#{q_number}#{q_usage[q_number]}.front(); #{q_number}#{q_usage[q_number]}.pop();")
 			else
 				new_prog += line
 			end

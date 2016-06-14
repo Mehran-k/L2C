@@ -2,20 +2,25 @@ domain people 3 {ali, reza, taghi}
 //domain movie 3 {Titanic, Her, Zootopia}
 
 //predicate Likes(people, movie)
-//predicate R(people)
+predicate P
+predicate R
 predicate S(people)
-//predicate T(people)
+predicate T(people)
 predicate F(people, people) 2.71828182 1
 predicate Friend(people, people)
 predicate C(people)
 predicate G(people) 1.64872127 1
 
-!F(x, y) v !S(x) v !Friend(x,y) v S(y)
-S(x) v F(x, y)
-Friend(x, y) v F(x, y)
-!S(y) v F(x, y)
-!G(x) v !S(x) v C(x)
-S(x) v G(x)
-!C(x) v G(x)
+S(x) v T(y)
+//!P v S(x) v T(y)
+//P v R v S(x) v T(y)
+//P v !R v S(x) v T(y)
+//!F(x, y) v !S(x) v !Friend(x,y) v S(y)
+//S(x) v F(x, y)
+//Friend(x, y) v F(x, y)
+//!S(y) v F(x, y)
+//!G(x) v !S(x) v C(x)
+//S(x) v G(x)
+//!C(x) v G(x)
 
 

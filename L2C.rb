@@ -15,7 +15,7 @@ require './branchingorder'
 
 #parameters
 order_heuristic = "MNL"
-num_sls = 2
+num_sls = 25
 max_pop_size = 100
 
 #arguments
@@ -51,49 +51,16 @@ cnf = CNF.new(parser.formulae)
 cnf.shatter
 cnf.replace_prvs_having_same_lv
 bo = BranchingOrder.new(cnf)
-order = bo.min_nested_loop_order(num_sls)
+# order = bo.min_nested_loop_order(num_sls)
+order = ["P", "R", "S", "T"]
 weight_function = cnf.adjust_weights(parser.weights)
 wfomc = WFOMC.new(weight_function, max_pop_size)
 wfomc.set_order(order)
 cache = Cache.new
 cpp_core = wfomc.compile(cnf, cache)
+cpp_core = cache.remove_inserts(cpp_core)
 doubles = wfomc.get_doubles
+queues = cache.queues_declaration
 puts cpp_core
-cpp_handler = CPPHandler.new(cpp_core, doubles)
+cpp_handler = CPPHandler.new(cpp_core, doubles, queues)
 cpp_handler.execute(arguments["-f"].gsub(".wmc", ""), max_pop_size)
-
-# puts cnf.my2string
-# puts "~~~~~"
-# cnf.replace_prvs_having_same_lv
-# puts cnf.my2string
-
-# wfomc = WFOMC.new(parser.weights, max_pop_size)
-# wfomc.set_order(cnf.min_nested_loop_order(num_sls))
-# cache = Cache.new
-# cpp_core = wfomc.compile(cnf, cache)
-# doubles = wfomc.get_doubles
-# puts cpp_core
-# cpp_handler = CPPHandler.new(cpp_core, doubles)
-# cpp_handler.execute(arguments["-f"].gsub(".wmc", ""), max_pop_size)
-
-
-# pop_size, decomposer_lv_pos, prv_pos = cnf.get_decomposer_lv
-# # puts pop_size.inspect
-# # puts decomposer_lv_pos.inspect
-# # puts prv_pos.inspect
-# puts "~~~~~~~~~~"
-# cnf.decompose(decomposer_lv_pos, prv_pos)
-# puts cnf.my2string
-# cnf.shatter
-# puts "~~~~~~~~"
-# puts cnf.my2string
-
-# puts "~~~~~~~~~~~~~~~~"
-# prv = cnf.clauses[0].literals[0].prv
-# cnf.branch(prv, "3")
-# cnf.apply_branch_observation(prv)
-# puts cnf.my2string
-# puts "~~~~~~~~~~~~~~~~"
-# cnf.remove_resolved_constraints
-# puts cnf.my2string
-

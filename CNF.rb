@@ -317,10 +317,10 @@ class CNF
 		order.each {|prv_name| @clauses.each {|clause| clause.literals.each {|literal| return literal.prv if literal.prv.core_name == prv_name}}}
 	end
 
-	# def has_no_lvs
-	# 	@clauses.each {|clause| clause.literals.each {|literal| return false if literal.prv.num_lvs > 0}}
-	# 	return true
-	# end
+	def has_no_lvs
+		@clauses.each {|clause| clause.literals.each {|literal| return false if literal.prv.num_lvs > 0}}
+		return true
+	end
 
 	def unique_identifier
 		cnf_dup = self.duplicate
