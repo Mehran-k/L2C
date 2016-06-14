@@ -51,8 +51,7 @@ cnf = CNF.new(parser.formulae)
 cnf.shatter
 cnf.replace_prvs_having_same_lv
 bo = BranchingOrder.new(cnf)
-# order = bo.min_nested_loop_order(num_sls)
-order = ["P", "R", "S", "T"]
+order = bo.min_nested_loop_order(num_sls)
 weight_function = cnf.adjust_weights(parser.weights)
 wfomc = WFOMC.new(weight_function, max_pop_size)
 wfomc.set_order(order)

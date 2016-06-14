@@ -74,13 +74,13 @@ class WFOMC
 		#unit propagation
 		unit_clauses = cnf_dup.unit_clauses
 		if  unit_clauses.size > 0
-			str = "v#{save_counter}="
+			unit_weights = ""
 			unit_clauses.each do |unit_clause|
 				if(unit_clause.literals.size > 0) #previous unit clauses may make others disapper
 					puts "Unit Propagation on #{unit_clause.literals[0].prv.my2string}"
 					literal = unit_clause.literals[0]
 					if(@weights[literal.prv.core_name] != [0, 0])
-						str << (literal.value == "true" ? @weights[literal.prv.core_name][0].to_s : @weights[literal.prv.core_name][1].to_s) + "*" + literal.prv.psize + "+"
+						unit_weights << (literal.value == "true" ? @weights[literal.prv.core_name][0].to_s : @weights[literal.prv.core_name][1].to_s) + "*" + literal.prv.psize + "+"
 					end
 					cnf_dup.propagate(unit_clause)
 					cnf_dup.remove_resolved_constraints
@@ -89,30 +89,49 @@ class WFOMC
 			puts "After unit propagation, we have the following CNF:"
 			puts cnf_dup.my2string
 			puts "\n"
-			if str == "v#{save_counter}=" #all unit clauses had weight 1
-				to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
-				cnf_dup.clauses -= to_evaluate
-				str2 = ""
+			to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
+			cnf_dup.clauses -= to_evaluate
+			puts "~~~~~~~~~~"
+			puts eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)
+			# to_eval_string = eval_str(cnf_dup, to_evaluate, "v" + (save_counter+1).to_s)
+			# if(unit_weights == "" and to_eval_string = "0")
+			# 	@counter -= 1
+			# 	return compile(cnf_dup, cache)
+			# else
+				str = ""
 				puts "Now we call compile for the following CNF:"
 				puts cnf_dup.my2string
 				puts "\n"
-				compile(cnf_dup, cache).each_line {|line| str2 << line}
-				str2 << "v#{save_counter}=#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
-				return str2
-			else
-				str += "v#{save_counter+1};\n"
-				@counter += 1
-				to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
-				cnf_dup.clauses -= to_evaluate
-				str2 = ""
-				puts "Now we call compile for the following CNF:"
-				puts cnf_dup.my2string
-				puts "\n"
-				compile(cnf_dup, cache).each_line {|line| str2 << line}
-				str2 << "v#{save_counter+1}=#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+2).to_s)};\n"
-				str2 << str;
-				return str2
-			end
+				compile(cnf_dup, cache).each_line {|line| str << line}
+				str += "v#{save_counter}=#{unit_weights}#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
+			# 	return str
+			# end
+			return str
+
+			# if str == "v#{save_counter}=" #all unit clauses had weight 1
+			# 	to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
+			# 	cnf_dup.clauses -= to_evaluate
+			# 	str2 = ""
+			# 	puts "Now we call compile for the following CNF:"
+			# 	puts cnf_dup.my2string
+			# 	puts "\n"
+			# 	compile(cnf_dup, cache).each_line {|line| str2 << line}
+			# 	str2 << "v#{save_counter}=#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
+			# 	return str2
+			# else
+			# 	str += "v#{save_counter+1};\n"
+			# 	@counter += 1
+			# 	to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
+			# 	cnf_dup.clauses -= to_evaluate
+			# 	str2 = ""
+			# 	puts "Now we call compile for the following CNF:"
+			# 	puts cnf_dup.my2string
+			# 	puts "\n"
+			# 	compile(cnf_dup, cache).each_line {|line| str2 << line}
+			# 	str2 << "v#{save_counter+1}=#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+2).to_s)};\n"
+			# 	str2 << str;
+			# 	return str2
+			# end
 		end
 
 		cc = cnf_dup.connected_components
@@ -167,6 +186,7 @@ class WFOMC
 		end
 
 		branch_prv = cnf_dup.next_prv(@order)
+		puts "Order: " + @order.join(",")
 		puts "No rules can be applied. Branching on: " + branch_prv.my2string
 
 		if  branch_prv.num_distinct_lvs == 0
@@ -199,16 +219,20 @@ class WFOMC
 
 		elsif branch_prv.num_distinct_lvs == 1
 			array_counter = save_counter
-			str += "double v#{array_counter}_arr[MAX];\n"
+			str << "double v#{array_counter}_arr[MAX];\n"
 			#the case where the prv is true for no individuals
+			puts "~~~Boundary case where the prv is true for no individuals~~~"
+			str << "//~~~Boundary case where the prv is true for no individuals~~~\n"
 			cnf_dup_0 = cnf.duplicate
 			clause_0 = Clause.new([branch_prv.lit("false")], Array.new)
 			cnf_dup_0.clauses << clause_0
 			compile(cnf_dup_0, cache).each_line {|line| str << line}
 
-			str += "v#{array_counter}_arr[0]=v#{save_counter+1};\n"
+			str << "v#{array_counter}_arr[0]=v#{save_counter+1};\n"
 			save_counter = @counter
 
+			puts "~~~Going into the loop~~~"
+			str << "//~~~Going into the loop~~~\n"
 			branch_lv = branch_prv.first_lv
 			loop_iterator = "i_" + branch_prv.full_name + "_i"
 			str += "C_#{loop_iterator}=logs[#{branch_lv.psize}];#{@new_line}"
@@ -226,9 +250,9 @@ class WFOMC
 			str += "for(int #{loop_iterator}=1;#{loop_iterator}<#{branch_lv.psize};#{loop_iterator}++){\n"
 			compile(cnf_dup, cache).each_line {|line| str << @indent + line}
 			if(@weights[branch_prv.core_name] == [0, 0])
-				str << @indent + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
+				str << @indent + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter).to_s)};\n"
 			else
-				str << @indent + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+(#{@weights[branch_prv.core_name][0]}*#{loop_iterator}+#{@weights[branch_prv.core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
+				str << @indent + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+(#{@weights[branch_prv.core_name][0]}*#{loop_iterator}+#{@weights[branch_prv.core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter).to_s)};\n"
 			end
 			str << @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
 			
@@ -236,6 +260,8 @@ class WFOMC
 			str += "}\n"
 
 			#the case where the prv is true for all individuals
+			puts "~~~Boundary case where the prv is true for all individuals~~~"
+			str << "//~~~Boundary case where the prv is true for all individuals~~~\n"
 			save_counter = @counter
 			#str += "if(#{branch_lv.psize} != 0){\n"  ~~~No population will ever be zero~~~
 			cnf_dup_n = cnf.duplicate

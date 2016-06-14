@@ -18,10 +18,6 @@ class CNF
 	end
 
 	def propagate(unit_clause)
-		puts unit_clause.my2string
-		puts "~~~~"
-		puts self.my2string
-		puts "~~~~~~~~~~~~~~~~~~"
 		literal = unit_clause.literals[0]
 		update_with_identifier(literal.prv, literal.value)
 	end
@@ -304,12 +300,9 @@ class CNF
 		const = Constant.new("NC_" + @clauses[0].literals[0].prv.terms[lv_positions[prv_positions[@clauses[0].literals[0].name]]-1].name.upcase + "1")
 		@clauses.each do |clause| 
 			lv = clause.literals[0].prv.terms[lv_positions[prv_positions[clause.literals[0].name]]-1]
-			clause.logvars.each_with_index {|logvar, i| clause.logvars[i] = const if logvar.name == lv.name}
 			clause.literals.each {|literal| literal.prv.terms.each_with_index {|term, i| literal.prv.terms[i] = const if literal.prv.terms[i].class == LogVar and literal.prv.terms[i].name == lv.name}}
 			clause.literals.each {|literal| literal.prv.terms[lv_positions[prv_positions[literal.name]]-1] = const}
-			clause.constraints.each do |constraint|
-				constraint.replace_terms(lv, const)
-			end
+			clause.constraints.each {|constraint| constraint.replace_terms(lv, const)}
 		end
 	end
 
@@ -335,11 +328,6 @@ class CNF
 					clause.replace_all_lvs(lv, const)
 				end
 			end
-			# clause.logvars.select{|lv| lv.class == LogVar}.each do |lv| #some lvs might be already replaced
-			# 	const = Constant.new((clause_type_counts[lv.type].to_i + 1).to_s << ":" << lv.type << ":" << lv.psize.to_s)
-			# 	clause_type_counts[lv.type] = clause_type_counts[lv.type].to_i + 1
-			# 	clause.replace_all_lvs(lv, const)
-			# end
 			clause_strings << clause.my2string
 		end
 		return clause_strings.sort.join
@@ -347,11 +335,7 @@ class CNF
 
 	def my2string
 		return "The CNF has no Clauses\n" if @clauses.size == 0
-		str = ""
-		@clauses.each do |clause|
-			str += clause.my2string + "\n"
-		end
-		return str
+		return @clauses.map{|clause| clause.my2string + "\n"}.join("")
 	end
 
 	def duplicate

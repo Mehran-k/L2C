@@ -1,5 +1,5 @@
 class Clause
-	attr_accessor :literals, :is_true, :constraints
+	attr_accessor :literals, :constraints, :is_true
 
 	def initialize(literals, constraints)
 		@literals = literals.map{|lit| lit.duplicate}
