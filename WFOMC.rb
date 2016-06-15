@@ -51,7 +51,7 @@ class WFOMC
 		puts "\n"
 
 		# @num_iterate += 1
-		# exit if @num_iterate > 7
+		# exit if @num_iterate > 2
 
 		cnf_dup = cnf.duplicate
 		str = ""
@@ -59,7 +59,7 @@ class WFOMC
 		@counter += 1
 
 		if  cnf_dup.clauses.size == 0
-			puts "CNF was empty. Returning."
+			puts "CNF was empty. Returning..."
 			@noeffect_vars << "v#{save_counter}"
 			return ""
 		end
@@ -89,6 +89,8 @@ class WFOMC
 			puts "After unit propagation, we have the following CNF:"
 			puts cnf_dup.my2string
 			puts "\n"
+			return "v#{save_counter}=-2000;\n" if cnf_dup.has_false_clause
+			
 			to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
 			cnf_dup.clauses -= to_evaluate
 			puts "~~~~~~~~~~"

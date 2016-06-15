@@ -62,7 +62,7 @@ class PRV
 		return "1" if logvars.size == 0
 		all_num = true
 		@terms.each {|term| all_num = false if term.psize.to_i.to_s != term.psize}
-		if(num_distinct_lvs == 1 or constraints.size == 0)
+		if(constraints.size == 0)
 			return eval(@terms.inject(""){|result, term| result += term.psize + "*"}.chop).to_s if all_num
 			return (@terms.inject("(") {|result, term| result += ("(" + term.psize + ")*")}.chop + ")")
 		elsif(num_distinct_lvs == 2 and constraints.size == 1)
