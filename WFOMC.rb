@@ -32,9 +32,9 @@ class WFOMC
 			clause.literals.each do |literal|
 				if not all_prvs.include? literal.name and not already_counted.include? literal.name
 					if(@weights[literal.prv.core_name] == [0.0, 0.0])
-						str += "0.6931471805*#{literal.prv.psize}+"
+						str += "0.6931471805*#{literal.prv.psize(clause.constraints)}+"
 					else
-						str += "sum(#{@weights[literal.prv.core_name][0]}, #{@weights[literal.prv.core_name][1]})*#{literal.prv.psize}+"
+						str += "sum(#{@weights[literal.prv.core_name][0]}, #{@weights[literal.prv.core_name][1]})*#{literal.prv.psize(clause.constraints)}+"
 					end
 					already_counted << literal.name
 				end
@@ -80,7 +80,7 @@ class WFOMC
 					puts "Unit Propagation on #{unit_clause.literals[0].prv.my2string}"
 					literal = unit_clause.literals[0]
 					if(@weights[literal.prv.core_name] != [0, 0])
-						unit_weights << (literal.value == "true" ? @weights[literal.prv.core_name][0].to_s : @weights[literal.prv.core_name][1].to_s) + "*" + literal.prv.psize + "+"
+						unit_weights << (literal.value == "true" ? @weights[literal.prv.core_name][0].to_s : @weights[literal.prv.core_name][1].to_s) + "*" + literal.prv.psize(unit_clause.constraints) + "+"
 					end
 					cnf_dup.propagate(unit_clause)
 					cnf_dup.remove_resolved_constraints
@@ -248,7 +248,7 @@ class WFOMC
 			return str
 		else
 			puts cnf_dup.my2string
-			return "(Two lvs)\n"
+			Helper.error("The input theory is not liftable")
 			# puts "*******************@@@@@@@@@@@@@@@@@*******************@@@@@@@@@@@@@@@@@**************************@@@@@@@@@@@@@@@@@@@***************"
 			# cnf_dup.ground(branch_prv.first_lv)
 			# return lrc(next_prv(cnf_dup), cnf_dup, cache)

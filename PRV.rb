@@ -58,12 +58,19 @@ class PRV
 		return @terms.inject(1) {|result, term| result * term.psize.to_i}
 	end
 
-	def psize
+	def psize(constraints)
 		return "1" if logvars.size == 0
 		all_num = true
 		@terms.each {|term| all_num = false if term.psize.to_i.to_s != term.psize}
-		return eval(@terms.inject(""){|result, term| result += term.psize + "*"}.chop).to_s if all_num
-		return (@terms.inject("(") {|result, term| result += ("(" + term.psize + ")*")}.chop + ")")
+		if(num_distinct_lvs == 1 or constraints.size == 0)
+			return eval(@terms.inject(""){|result, term| result += term.psize + "*"}.chop).to_s if all_num
+			return (@terms.inject("(") {|result, term| result += ("(" + term.psize + ")*")}.chop + ")")
+		elsif(num_distinct_lvs == 2 and constraints.size == 1)
+			return eval(logvars[0].psize + "*(" + logvars[1].psize + "-1)").to_s if all_num
+			return "(" + logvars[0].psize + ")*(" + logvars[1].psize + "-1)"
+		else
+			Helper.error("The code currently does not support this model. See PRV.psize")
+		end
 	end
 
 	def cfbf

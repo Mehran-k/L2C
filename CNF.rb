@@ -52,6 +52,10 @@ class CNF
 		# 		remove_lv_neq_const(constraint.term1, constraint.term2) if constraint.lv_neq_const
 		# 	end
 		# end
+		literals.each do |literal|
+			split(literal.prv, 0, 1) if literal.prv.num_lvs == 2 and literal.prv.num_distinct_lvs == 1
+		end
+
 		@clauses.each do |clause|
 			clause.constraints.each do |constraint|
 				if constraint.lv_neq_lv
@@ -59,21 +63,25 @@ class CNF
 						if literal.prv.logvars.size >= 2
 							lv1_index = literal.prv.index_lv_with_name(constraint.term1.name)
 							lv2_index = literal.prv.index_lv_with_name(constraint.term2.name)
-							split(literal.prv, lv1_index, lv2_index) if lv1_index != -1 and lv2_index != -1 
+							if lv1_index != -1 and lv2_index != -1 
+								split(literal.prv, lv1_index, lv2_index) 
+							end
 						end
 					end
 				end
 			end
-		end
-		literals.each do |literal|
-			split(literal.prv, 0, 1) if literal.prv.num_lvs == 2 and literal.prv.num_distinct_lvs == 1
 		end
 		# @clauses.each do |clause|
 		# 	clause.literals.each do |literal|
 		# 		split(literal.prv, 0, 1) if literal.prv.num_lvs == 2 and literal.prv.num_distinct_lvs == 1
 		# 	end
 		# end
-		# @clauses.each {|clause| clause.remove_duplicate_lvs}
+		#@clauses.each {|clause| clause.remove_duplicate_lvs}
+		@clauses.each do |clause|
+			clause.literals.each_with_index do |literal, i|
+				clause.literals[i].prv = literal.prv.remove_same_lvs
+			end
+		end
 	end
 
 	def remove_lv_neq_const(lv, const)
@@ -81,8 +89,19 @@ class CNF
 	end
 
 	def split(prv, lv1_index, lv2_index)
+		puts prv.my2string
 		@clauses.each do |clause|
 			clause.literals.each do |literal|
+				# if(literal.prv.num_distinct_lvs == 2)
+				# 	index1 = literal.prv.index_lv_with_name(prv.logvars[lv1_index])
+				# 	index2 = literal.prv.index_lv_with_name(prv.logvars[lv2_index])
+				# 	if index1 != -1 and index2 != -1 and !clause.has_constraint(literal.prv.logvars[lv1_index], literal.prv.logvars[lv2_index], "!=")
+				# 		clause_dup = clause.duplicate
+				# 		clause.add_constraint(literal.prv.logvars[lv1_index], literal.prv.logvars[lv2_index], "!=")
+				# 		clause_dup.replace_all_lvs(literal.prv.logvars[lv2_index], literal.prv.logvars[lv1_index])
+				# 		@clauses << clause_dup
+				# 	end
+				# end
 				if literal.name == prv.full_name
 					if  literal.prv.logvars[lv1_index].name != literal.prv.logvars[lv2_index].name and !clause.has_constraint(literal.prv.logvars[lv1_index], literal.prv.logvars[lv2_index], "!=")
 						clause_dup = clause.duplicate
