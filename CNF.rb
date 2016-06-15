@@ -13,6 +13,14 @@ class CNF
 		return @clauses.inject(Array.new){|result, clause| result += clause.literals.map{|literal| [literal.name, [literal.prv.num_lvs, literal.prv.num_psize]]}}.uniq.to_h
 	end
 
+	def literals
+		@clauses.map{|clause| clause.literals}.flatten
+	end
+
+	def constraints
+		@clauses.map{|clause| clause.constraints}.flatten
+	end
+
 	def unit_clauses
 		@clauses.select{|clause| clause.literals.size == 1}
 	end
@@ -22,24 +30,28 @@ class CNF
 		update_with_identifier(literal.prv, literal.value)
 	end
 
-	def adjust_weights(weight_function)
+	def adjust_weights(weight_function) #I add _r0-9 to the PRVs having two LVs with same name and remove one of the LVs. These PRVs must have the same weight.
 		new_function = weight_function
-		@clauses.each do |clause|
-			clause.literals.each do |literal|
-				if !literal.prv.full_name.index("_r").nil?
-					new_function[literal.prv.core_name] = weight_function[literal.prv.core_name[0..literal.prv.core_name.index("_r")-1]]
-				end
-			end
+		literals.each do |literal|
+			new_function[literal.prv.core_name] = weight_function[literal.prv.core_name[0..literal.prv.core_name.index("_r")-1]] if !literal.prv.full_name.index("_r").nil?
 		end
+		# @clauses.each do |clause|
+		# 	clause.literals.each do |literal|
+		# 		new_function[literal.prv.core_name] = weight_function[literal.prv.core_name[0..literal.prv.core_name.index("_r")-1]] if !literal.prv.full_name.index("_r").nil?
+		# 	end
+		# end
 		return new_function
 	end
 
 	def shatter #all changes are done together. I may have to do one shattering, then call shatter again. Or even do it a few times until nothing changes
-		@clauses.each do |clause|
-			clause.constraints.each do |constraint|
-				remove_lv_neq_const(constraint.term1, constraint.term2) if constraint.lv_neq_const
-			end
+		constraints.each do |constraint|
+			remove_lv_neq_const(constraint.term1, constraint.term2) if constraint.lv_neq_const
 		end
+		# @clauses.each do |clause|
+		# 	clause.constraints.each do |constraint|
+		# 		remove_lv_neq_const(constraint.term1, constraint.term2) if constraint.lv_neq_const
+		# 	end
+		# end
 		@clauses.each do |clause|
 			clause.constraints.each do |constraint|
 				if constraint.lv_neq_lv
@@ -53,13 +65,14 @@ class CNF
 				end
 			end
 		end
-		@clauses.each do |clause|
-			clause.literals.each do |literal|
-				if literal.prv.num_lvs == 2 and literal.prv.num_distinct_lvs == 1
-					split(literal.prv, 0, 1)
-				end
-			end
+		literals.each do |literal|
+			split(literal.prv, 0, 1) if literal.prv.num_lvs == 2 and literal.prv.num_distinct_lvs == 1
 		end
+		# @clauses.each do |clause|
+		# 	clause.literals.each do |literal|
+		# 		split(literal.prv, 0, 1) if literal.prv.num_lvs == 2 and literal.prv.num_distinct_lvs == 1
+		# 	end
+		# end
 		# @clauses.each {|clause| clause.remove_duplicate_lvs}
 	end
 
@@ -70,12 +83,10 @@ class CNF
 	def split(prv, lv1_index, lv2_index)
 		@clauses.each do |clause|
 			clause.literals.each do |literal|
-				# if literal.prv.unique_identifier == prv.unique_identifier 
 				if literal.name == prv.full_name
 					if  literal.prv.logvars[lv1_index].name != literal.prv.logvars[lv2_index].name and !clause.has_constraint(literal.prv.logvars[lv1_index], literal.prv.logvars[lv2_index], "!=")
 						clause_dup = clause.duplicate
 						clause.add_constraint(literal.prv.logvars[lv1_index], literal.prv.logvars[lv2_index], "!=")
-						# literal.prv.full_name = literal.prv.full_name + "_neq"
 						clause_dup.replace_all_lvs(literal.prv.logvars[lv2_index], literal.prv.logvars[lv1_index])
 						@clauses << clause_dup
 					end
@@ -85,20 +96,24 @@ class CNF
 	end
 
 	def replace_prvs_having_same_lv
-		@clauses.each do |clause|
-			clause.literals.each do |literal|
-				if(literal.prv.num_lvs != literal.prv.num_distinct_lvs)
-					new_prv = literal.prv.remove_same_lvs
-					replace_all_prvs(literal.prv, new_prv)
-				end
+		literals.select{|literal| }.each do |literal|
+			if(literal.prv.num_lvs != literal.prv.num_distinct_lvs)
+				new_prv = literal.prv.remove_same_lvs
+				replace_all_prvs(literal.prv, new_prv)
 			end
 		end
+		# @clauses.each do |clause|
+		# 	clause.literals.each do |literal|
+		# 		if(literal.prv.num_lvs != literal.prv.num_distinct_lvs)
+		# 			new_prv = literal.prv.remove_same_lvs
+		# 			replace_all_prvs(literal.prv, new_prv)
+		# 		end
+		# 	end
+		# end
 	end
 
 	def replace_all_prvs(prv1, prv2)
-		@clauses.each do |clause|
-			clause.replace_all_prvs(prv1, prv2)
-		end
+		@clauses.each {|clause| clause.replace_all_prvs(prv1, prv2)}
 	end
 
 	def connected_components #"friend(x,x)" and "friend(x,y), x!= y" are also disconnected. I should add this.
@@ -106,13 +121,14 @@ class CNF
 		cnf_dup = self.duplicate
 		cc = Array.new
 		cc << cnf_dup.clauses.shift
-		prv_names = cc.first.literals.map{|literal| literal.name}.uniq
+		prv_names = cc.first.all_prv_names.uniq
+		# prv_names = cc.first.literals.map{|literal| literal.name}.uniq
 		
 		something_changed = true
 		while something_changed
 			something_changed = false
 			cnf_dup.clauses.each_with_index do |clause, i|
-				clause_prv_names = clause.literals.map{|literal| literal.name}.uniq
+				clause_prv_names = clause.all_prv_names.uniq #clause.literals.map{|literal| literal.name}.uniq
 				if  (prv_names & clause_prv_names).size != 0
 					cc << clause
 					cnf_dup.clauses -= [clause]
@@ -121,7 +137,7 @@ class CNF
 				end
 			end
 		end
-		return (@clauses.size == cc.size) ? [CNF.new(cc)] : [CNF.new(cc)] + CNF.new(cnf_dup.clauses).connected_components
+		return (cnf_dup.clauses.size == 0) ? [CNF.new(cc)] : [CNF.new(cc)] + CNF.new(cnf_dup.clauses).connected_components
 	end
 
 	def update_with_identifier(prv, value)
@@ -129,7 +145,6 @@ class CNF
 			clause.literals.each do |literal|
 				if  literal.prv.unique_identifier == prv.unique_identifier
 					clause.is_true = true if literal.value == value
-
 					clause.literals -= [literal] 
 				end
 			end
@@ -174,11 +189,7 @@ class CNF
 			end
 		end
 
-		@clauses.each do |clause|
-			clause.literals.each do |literal|
-				literal.prv.confirm_name_addendum
-			end
-		end
+		@clauses.each {|clause| clause.literals.each {|literal| literal.prv.confirm_name_addendum}}
 	end
 
 	def apply_branch_observation(branch_prv)
@@ -225,9 +236,7 @@ class CNF
 	def fo2
 		@clauses.each do |clause|
 			return false if clause.num_distinct_lvs != 2
-			clause.literals.each do |literal|
-				return false if literal.prv.num_distinct_lvs != 2
-			end
+			clause.literals.each {|literal| return false if literal.prv.num_distinct_lvs != 2}
 		end
 		return true
 	end
@@ -245,16 +254,24 @@ class CNF
 	end
 
 	def replace_no_lv_prvs_with_rvs
-		@clauses.each do |clause|
-			clause.literals.each do |literal|
-				if literal.prv.num_lvs == 0
-					new_prv = literal.prv.duplicate
-					new_prv.full_name = literal.prv.my2string.gsub("(", "_").gsub(")", "_").gsub(",", "_")
-					new_prv.terms = Array.new
-					replace_all_prvs(literal.prv, new_prv)
-				end
+		literals.each do |literal|
+			if literal.prv.num_lvs == 0
+				new_prv = literal.prv.duplicate
+				new_prv.full_name = literal.prv.my2string.gsub("(", "_").gsub(")", "_").gsub(",", "_")
+				new_prv.terms = Array.new
+				replace_all_prvs(literal.prv, new_prv)
 			end
 		end
+		# @clauses.each do |clause|
+		# 	clause.literals.each do |literal|
+		# 		if literal.prv.num_lvs == 0
+		# 			new_prv = literal.prv.duplicate
+		# 			new_prv.full_name = literal.prv.my2string.gsub("(", "_").gsub(")", "_").gsub(",", "_")
+		# 			new_prv.terms = Array.new
+		# 			replace_all_prvs(literal.prv, new_prv)
+		# 		end
+		# 	end
+		# end
 	end
 
 	def get_decomposer_lv

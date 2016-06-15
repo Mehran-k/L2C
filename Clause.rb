@@ -72,6 +72,10 @@ class Clause
 		end
 	end
 
+	def all_prv_names
+		@literals.map{|literal| literal.name}
+	end
+
 	def my2string
 		str = "<"
 		if @is_true 

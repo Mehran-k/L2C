@@ -202,7 +202,7 @@ class WFOMC
 			cnf_dup_0.clauses << clause_0
 			compile(cnf_dup_0, cache).each_line {|line| str << line}
 
-			str << "v#{array_counter}_arr[0]=v#{save_counter+1};\n"
+			str << "v#{array_counter}_arr[0]=" + ((@noeffect_vars.include? "v#{save_counter+1}") ? "0" : "v#{save_counter+1}") + ";\n"
 			save_counter = @counter
 
 			puts "~~~Going into the loop~~~"
@@ -221,7 +221,7 @@ class WFOMC
 			puts cnf_dup.my2string
 			puts "\n"
 			
-			str += "for(int #{loop_iterator}=1;#{loop_iterator}<#{branch_lv.psize};#{loop_iterator}++){\n"
+			str << "for(int #{loop_iterator}=1;#{loop_iterator}<#{branch_lv.psize};#{loop_iterator}++){\n"
 			compile(cnf_dup, cache).each_line {|line| str << @indent + line}
 			if(@weights[branch_prv.core_name] == [0, 0])
 				str << @indent + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter).to_s)};\n"
@@ -231,7 +231,7 @@ class WFOMC
 			str << @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
 			
 			#str += @indent + "v#{save_counter}=sum(v#{save_counter},C_#{loop_iterator}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)});\n" + @indent + "C_#{loop_iterator}=(C_#{loop_iterator}-log(#{loop_iterator}+1))+log((#{branch_lv.psize})-#{loop_iterator});#{@new_line}"
-			str += "}\n"
+			str << "}\n"
 
 			#the case where the prv is true for all individuals
 			puts "~~~Boundary case where the prv is true for all individuals~~~"
@@ -243,8 +243,8 @@ class WFOMC
 			cnf_dup_n.clauses << clause_n
 			compile(cnf_dup_n, cache).each_line {|line| str << line}
 
-			str += "v#{array_counter}_arr[#{branch_lv.psize}]=v#{save_counter};\n"
-			str += "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{array_counter}")
+			str << "v#{array_counter}_arr[#{branch_lv.psize}]=" + ((@noeffect_vars.include? "v#{save_counter}") ? "0" : "v#{save_counter}") + ";\n"
+			str << "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{array_counter}")
 			return str
 		else
 			puts cnf_dup.my2string
