@@ -19,8 +19,7 @@ predicate G(people) 1.64872127 1
 S(x) v F(x, y)
 Friend(x, y) v F(x, y)
 !S(y) v F(x, y)
-//!G(x) v !S(x) v C(x)
-//S(x) v G(x)
-//!C(x) v G(x)
-
-
+!G(x) v !S(x) v C(x)
+S(x) v G(x)
+!C(x) v G(x)
+//P

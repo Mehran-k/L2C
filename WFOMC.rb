@@ -92,46 +92,20 @@ class WFOMC
 			to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
 			cnf_dup.clauses -= to_evaluate
 			puts "~~~~~~~~~~"
-			puts eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)
-			# to_eval_string = eval_str(cnf_dup, to_evaluate, "v" + (save_counter+1).to_s)
-			# if(unit_weights == "" and to_eval_string = "0")
-			# 	@counter -= 1
-			# 	return compile(cnf_dup, cache)
-			# else
-				str = ""
-				puts "Now we call compile for the following CNF:"
-				puts cnf_dup.my2string
-				puts "\n"
-				compile(cnf_dup, cache).each_line {|line| str << line}
-				str += "v#{save_counter}=#{unit_weights}#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
-			# 	return str
-			# end
+			# puts eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)
+			
+			str = ""
+			puts "Now we call compile for the following CNF:"
+			puts cnf_dup.my2string
+			puts "\n"
+			compile(cnf_dup, cache).each_line {|line| str << line}
+			to_eval_string = eval_str(cnf_dup, to_evaluate, "v" + (save_counter+1).to_s)
+			if(save_counter != 1 and to_eval_string == "0" and unit_weights == "")
+				@noeffect_vars << "v#{save_counter}"
+			else
+				str += "v#{save_counter}=#{unit_weights}#{to_eval_string};\n"
+			end
 			return str
-
-			# if str == "v#{save_counter}=" #all unit clauses had weight 1
-			# 	to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
-			# 	cnf_dup.clauses -= to_evaluate
-			# 	str2 = ""
-			# 	puts "Now we call compile for the following CNF:"
-			# 	puts cnf_dup.my2string
-			# 	puts "\n"
-			# 	compile(cnf_dup, cache).each_line {|line| str2 << line}
-			# 	str2 << "v#{save_counter}=#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)};\n"
-			# 	return str2
-			# else
-			# 	str += "v#{save_counter+1};\n"
-			# 	@counter += 1
-			# 	to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated}
-			# 	cnf_dup.clauses -= to_evaluate
-			# 	str2 = ""
-			# 	puts "Now we call compile for the following CNF:"
-			# 	puts cnf_dup.my2string
-			# 	puts "\n"
-			# 	compile(cnf_dup, cache).each_line {|line| str2 << line}
-			# 	str2 << "v#{save_counter+1}=#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+2).to_s)};\n"
-			# 	str2 << str;
-			# 	return str2
-			# end
 		end
 
 		cc = cnf_dup.connected_components
