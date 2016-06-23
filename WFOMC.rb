@@ -44,6 +44,17 @@ class WFOMC
 		(@noeffect_vars.include? v) ? (return "(" + str.chop + ")") : (return v + "+(" + str.chop + ")")
 	end
 
+	def after_branch_cpp_string(core_name, array_counter, loop_iterator, unit_prop_string, cnf, cache, to_evaluate, save_counter, branch_lv)
+		str = ""
+		compile(cnf, cache).each_line {|line| str << Helper.indent(3) + line}
+		if(@weights[core_name] == [0, 0])
+			str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{unit_prop_string}#{eval_str(cnf, to_evaluate, 'v' + (save_counter).to_s)};\n"
+		else
+			str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{unit_prop_string}(#{@weights[core_name][0]}*#{loop_iterator}+#{@weights[core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf, to_evaluate, 'v' + (save_counter).to_s)};\n"
+		end
+		str << Helper.indent(2) + "}\n"
+	end
+
 	def compile(cnf, cache)
 
 		# puts "Compile was called with the follwing CNF:"
@@ -51,7 +62,7 @@ class WFOMC
 		# puts "\n"
 
 		# @num_iterate += 1
-		# exit if @num_iterate > 2
+		# exit if @num_iterate > 60
 
 		cnf_dup = cnf.duplicate
 		str = ""
@@ -76,6 +87,10 @@ class WFOMC
 		if  unit_clauses.size > 0
 			unit_prop_string, to_evaluate = cnf_dup.apply_unit_propagation(unit_clauses, @weights)
 			return "v#{save_counter}=-2000;\n" if(unit_prop_string == "false")
+
+			puts "After unit propagation the CNF is as follows:"
+			puts cnf_dup.my2string
+			puts "\n"
 			
 			compile(cnf_dup, cache).each_line {|line| str << line}
 			to_eval_string = eval_str(cnf_dup, to_evaluate, "v" + (save_counter+1).to_s)
@@ -148,64 +163,39 @@ class WFOMC
 			cnf_dup2.update(branch_prv.full_name, "false")
 			to_evaluate2 = cnf_dup2.clauses.select{|clause| clause.can_be_evaluated?}
 			cnf_dup2.clauses -= to_evaluate2
-
-			puts "The true branch has the following CNF:"
-			puts cnf_dup.my2string
-			puts "\n"
-
-			puts "The false branch has the following CNF:"
-			puts cnf_dup2.my2string			
-			puts "\n"
-
-			puts "~~~Going into the calles for the true branch~~~"
 			compile(cnf_dup, cache).each_line {|line| str << line}
 			save_counter2 = @counter
-			puts "~~~Going into the calles for the false branch~~~"
 			compile(cnf_dup2, cache).each_line {|line| str << line}
 
-			str += "v#{save_counter}=sum(#{@weights[branch_prv.core_name][0]}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)},#{@weights[branch_prv.core_name][1]}+#{eval_str(cnf_dup2, to_evaluate2, 'v' + (save_counter2).to_s)});\n"
-			str += cache.add(cnf, "v#{save_counter}")
+			str << "v#{save_counter}=sum(#{@weights[branch_prv.core_name][0]}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)},#{@weights[branch_prv.core_name][1]}+#{eval_str(cnf_dup2, to_evaluate2, 'v' + (save_counter2).to_s)});\n"
+			str << cache.add(cnf, "v#{save_counter}")
 			return str
 
 		elsif branch_prv.num_distinct_lvs == 1
 			array_counter = save_counter
+			save_counter = @counter
 			branch_lv = branch_prv.first_lv
-			puts "Going into the case where the population size of the PRV to be branched on is zero"
 			str << "if(#{branch_lv.psize}==0){\n"
 			cnf_dup_00 = cnf.duplicate
 			cnf_dup_00.remove_clauses_having_logvar(branch_lv)
-			puts "The CNF is as follows:"
-			puts cnf_dup_00.my2string
-			puts "\n"
 
 			compile(cnf_dup_00, cache.duplicate).each_line {|line| str << line}
-			if @noeffect_vars.include? "v#{save_counter+1}"
-				str << Helper.indent(1) + "v#{array_counter}=0;\n"
-			else
-				str << Helper.indent(1) + "v#{array_counter}=v#{save_counter+1};\n"
-			end 
-			#str << "v#{array_counter}=" + (@noeffect_vars.include? "v#{save_counter+1}" ? "0" : "v#{save_counter+1}") + ";\n"
+			str << Helper.indent(1) + "v#{array_counter}=#{eval_str(cnf_dup_00, Array.new, 'v' + (save_counter).to_s)};\n"
 			str << "}\n"
 
-			save_counter = @counter
-			str << "else if(#{branch_lv.psize}==1){\n"
-			cnf_dup_1 = cnf.duplicate
-			cnf_dup_1.remove_pop1_constraints(branch_lv)
-			to_evaluate = cnf_dup_1.clauses.select{|clause| clause.can_be_evaluated?}
-			cnf_dup_1.clauses -= to_evaluate
+			if(cnf_dup.has_lv_neq_lv_constraint_with_type? (branch_lv.type))
+				puts "Going into the case where the population size of the PRV to be branched on is one"
+				save_counter = @counter
+				str << "else if(#{branch_lv.psize}==1){\n"
+				cnf_dup_1 = cnf.duplicate
+				cnf_dup_1.remove_pop1_constraints(branch_lv)
+				to_evaluate = cnf_dup_1.clauses.select{|clause| clause.can_be_evaluated?}
+				cnf_dup_1.clauses -= to_evaluate
 
-			puts "The CNF is as follows:"
-			puts cnf_dup_1.my2string
-			puts "\n"
-
-			compile(cnf_dup_1, cache.duplicate).each_line {|line| str << line}
-			str << Helper.indent(1) + "v#{array_counter}=#{eval_str(cnf_dup_1, to_evaluate, 'v' + (save_counter).to_s)};\n"
-			# if @noeffect_vars.include? "v#{save_counter+1}"
-			# 	str << Helper.indent(1) + "v#{array_counter}=0;\n"
-			# else
-			# 	str << Helper.indent(1) + "v#{array_counter}=v#{save_counter+1};\n"
-			# end
-			str << "}\n"
+				compile(cnf_dup_1, cache.duplicate).each_line {|line| str << Helper.indent(1) + line}
+				str << Helper.indent(1) + "v#{array_counter}=#{eval_str(cnf_dup_1, to_evaluate, 'v' + (save_counter).to_s)};\n"
+				str << "}\n"
+			end
 
 			save_counter = @counter
 			str << "else{\n"
@@ -216,26 +206,18 @@ class WFOMC
 			str << Helper.indent(1) + "for(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"			
 			
 			str << Helper.indent(2) + "if(#{loop_iterator}==0){\n"
-			puts "Going into the boundary case where #{branch_prv.full_name} is always false"
 			cnf_dup_0 = cnf.duplicate
 			clause_0 = Clause.new([branch_prv.lit("false")], Array.new)
 			cnf_dup_0.clauses << clause_0
-			puts "The CNF is as follows:"
-			puts cnf_dup_0.my2string
-			puts "\n"
 
 			compile(cnf_dup_0, cache.duplicate).each_line {|line| str << Helper.indent(3) + line}
 			str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=" + ((@noeffect_vars.include? "v#{save_counter}") ? "0" : "v#{save_counter}") + ";\n"
 			save_counter = @counter
 			str << Helper.indent(2) + "}\n"
 			str << Helper.indent(2) + "else if(#{loop_iterator}==#{branch_lv.psize}){\n"
-			puts "Going into the boundary case where #{branch_prv.full_name} is always true"
 			cnf_dup_n = cnf.duplicate
 			clause_n = Clause.new([branch_prv.lit("true")], Array.new)
 			cnf_dup_n.clauses << clause_n
-			puts "The CNF is as follows:"
-			puts cnf_dup_n.my2string
-			puts "\n"
 
 			compile(cnf_dup_n, cache.duplicate).each_line {|line| str << Helper.indent(3) + line}
 			str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=" + ((@noeffect_vars.include? "v#{save_counter}") ? "0" : "v#{save_counter}") + ";\n"
@@ -248,7 +230,7 @@ class WFOMC
 			to_evaluate = cnf_dup_loop.clauses.select{|clause| clause.can_be_evaluated?}
 			cnf_dup_loop.clauses -= to_evaluate
 
-			#~~~~ this is new~~~~#
+			#~~~~ Unit propagation before going to each case. Note we do unit propagation only on clauses with no constraints because the ones having constraints may be changed during special cases.~~~~#
 			unit_prop_string = ""
 			unit_clauses = cnf_dup_loop.unit_clauses.select{|clause| clause.constraints.empty?}
 			if  unit_clauses.size > 0
@@ -262,91 +244,47 @@ class WFOMC
 					str << "}\n"
 					return str
 				end
-				# return str + "v#{save_counter}=-2000;\n" 
 				to_evaluate2 = cnf_dup_loop.clauses.select{|clause| clause.can_be_evaluated?}
 				cnf_dup_loop.clauses -= to_evaluate2.to_a
 
 				to_evaluate = to_evaluate.to_a + to_evaluate2.to_a
 				to_evaluate = nil if to_evaluate.empty?
 			end
-			#~~~~~~~~~~~~~~~~~~~~#
 
-			puts "CNF_DUP_LOOP is as follows:"
-			puts cnf_dup_loop.my2string
-			puts "\n"
-
-			if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "1") or cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2"))
+			if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "1") and cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2"))
 				save_counter = @counter
 				str += Helper.indent(2) + "else if(#{loop_iterator}==1 && #{branch_lv.psize}==2){\n"
-				puts "Going into the case where both x_T and x_F have a population size of 1"
 				cnf_dup_loop_11 = cnf_dup_loop.duplicate
 				cnf_dup_loop_11.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "1")}
 				cnf_dup_loop_11.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "2")}
 				to_evaluate2 = cnf_dup_loop_11.clauses.select{|clause| clause.can_be_evaluated?}
 				cnf_dup_loop_11.clauses -= to_evaluate2
-				puts "The CNF is as follows:"
-				puts cnf_dup_loop_11.my2string
-				puts "\n"
-
-				compile(cnf_dup_loop_11, cache.duplicate).each_line {|line| str << Helper.indent(3) + line}
-				if(@weights[branch_prv.core_name] == [0, 0])
-					str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{unit_prop_string}#{eval_str(cnf_dup_loop_11, to_evaluate + to_evaluate2, 'v' + (save_counter).to_s)};\n"
-				else
-					str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{unit_prop_string}(#{@weights[branch_prv.core_name][0]}*#{loop_iterator}+#{@weights[branch_prv.core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf_dup_loop_11, to_evaluate + to_evaluate2, 'v' + (save_counter).to_s)};\n"
-				end
-				str << Helper.indent(2) + "}\n"
+				str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop_11, cache.duplicate, to_evaluate + to_evaluate2, save_counter, branch_lv)
+			end
+			if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "1"))
 				save_counter = @counter
 				str << Helper.indent(2) + "else if(#{loop_iterator}==1){\n"
-				puts "Going into the case where x_T has a population size of 1"
 				cnf_dup_loop_1n = cnf_dup_loop.duplicate
 				cnf_dup_loop_1n.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "1")}
 				to_evaluate2 = cnf_dup_loop_1n.clauses.select{|clause| clause.can_be_evaluated?}
 				cnf_dup_loop_1n.clauses -= to_evaluate2
-				puts "The CNF is as follows:"
-				puts cnf_dup_loop_1n.my2string
-				puts "\n"
-
-				compile(cnf_dup_loop_1n, cache.duplicate).each_line {|line| str << Helper.indent(3) + line}
-				if(@weights[branch_prv.core_name] == [0, 0])
-					str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{unit_prop_string}#{eval_str(cnf_dup_loop_1n, to_evaluate + to_evaluate2, 'v' + (save_counter).to_s)};\n"
-				else
-					str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{unit_prop_string}(#{@weights[branch_prv.core_name][0]}*#{loop_iterator}+#{@weights[branch_prv.core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf_dup_loop_1n, to_evaluate + to_evaluate2, 'v' + (save_counter).to_s)};\n"
-				end
-				str << Helper.indent(2) + "}\n"
+				str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop_1n, cache.duplicate, to_evaluate + to_evaluate2, save_counter, branch_lv)
+			end
+			if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2"))
 				save_counter = counter
 				str << Helper.indent(2) + "else if(#{loop_iterator}==#{branch_lv.psize}-1){\n"
-				puts "Going into the case where x_F has a population size of 1"
 				cnf_dup_loop_n1 = cnf_dup_loop.duplicate
 				cnf_dup_loop_n1 = cnf_dup_loop.duplicate
 				cnf_dup_loop_n1.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "2")}
 				to_evaluate2 = cnf_dup_loop_n1.clauses.select{|clause| clause.can_be_evaluated?}
 				cnf_dup_loop_n1.clauses -= to_evaluate2
-				puts "The CNF is as follows:"
-				puts cnf_dup_loop_n1.my2string
-				puts "\n"
-
-				compile(cnf_dup_loop_n1, cache.duplicate).each_line {|line| str << Helper.indent(3) + line}
-				if(@weights[branch_prv.core_name] == [0, 0])
-					str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{unit_prop_string}#{eval_str(cnf_dup_loop_n1, to_evaluate + to_evaluate2, 'v' + (save_counter).to_s)};\n"
-				else
-					str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{unit_prop_string}(#{@weights[branch_prv.core_name][0]}*#{loop_iterator}+#{@weights[branch_prv.core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf_dup_loop_n1, to_evaluate + to_evaluate2, 'v' + (save_counter).to_s)};\n"
-				end
-				str << Helper.indent(2) + "}\n"
+				str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop_n1, cache.duplicate, to_evaluate + to_evaluate2, save_counter, branch_lv)
 			end
 			save_counter = counter
 			str << Helper.indent(2) + "else{\n"
-			puts "Going into the general case in the for loop"
 			cnf_dup_loop.remove_resolved_constraints
-			puts "The CNF is as follows:"
-			puts cnf_dup_loop.my2string
-			puts "\n"
-			compile(cnf_dup_loop, cache).each_line {|line| str << Helper.indent(3) + line}
-			if(@weights[branch_prv.core_name] == [0, 0])
-				str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{eval_str(cnf_dup_loop, to_evaluate, 'v' + (save_counter).to_s)};\n"
-			else
-				str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{unit_prop_string}(#{@weights[branch_prv.core_name][0]}*#{loop_iterator}+#{@weights[branch_prv.core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf_dup_loop, to_evaluate, 'v' + (save_counter).to_s)};\n"
-			end
-			str << Helper.indent(2) + "}\n"
+			str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop, cache.duplicate, to_evaluate + to_evaluate2, save_counter, branch_lv)
+			
 			str << Helper.indent(2) + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
 			str << Helper.indent(1) + "}\n"
 			str << Helper.indent(1) + "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{array_counter}")
