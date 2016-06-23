@@ -52,7 +52,131 @@ class WFOMC
 		else
 			str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{unit_prop_string}(#{@weights[core_name][0]}*#{loop_iterator}+#{@weights[core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf, to_evaluate, 'v' + (save_counter).to_s)};\n"
 		end
+		return str
+	end
+
+	def branching_for_psize_0_string(cnf, branch_lv, cache, array_counter, save_counter)
+		str = ""
+		cnf_dup_00 = cnf.duplicate
+		cnf_dup_00.remove_clauses_having_logvar(branch_lv)
+		compile(cnf_dup_00, cache.duplicate).each_line {|line| str << Helper.indent(1) + line}
+		str << Helper.indent(1) + "v#{array_counter}=#{eval_str(cnf_dup_00, Array.new, 'v' + (save_counter).to_s)};\n"
+		return str
+	end
+
+	def branching_for_psize_1_string(cnf, branch_lv, cache, array_counter, save_counter)
+		str = ""
+		cnf_dup_1 = cnf.duplicate
+		cnf_dup_1.remove_pop1_constraints(branch_lv)
+		to_evaluate = cnf_dup_1.clauses.select{|clause| clause.can_be_evaluated?}
+		cnf_dup_1.clauses -= to_evaluate
+		compile(cnf_dup_1, cache.duplicate).each_line {|line| str << Helper.indent(1) + line}
+		str << Helper.indent(1) + "v#{array_counter}=#{eval_str(cnf_dup_1, to_evaluate, 'v' + (save_counter).to_s)};\n"
+		return str
+	end
+
+	def branching_for_boundaries(cnf, loop_iterator, cache, array_counter, save_counter, branch_prv, boundary)
+		str = ""
+		cnf_dup = cnf.duplicate
+		clause = Clause.new([branch_prv.lit((boundary == "0" ? "false" : "true"))], Array.new)
+		cnf_dup.clauses << clause
+
+		compile(cnf_dup, cache.duplicate).each_line {|line| str << Helper.indent(3) + line}
+		if(@noeffect_vars.include? "v#{save_counter}")
+			str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=0;\n"
+		else
+			str.gsub!("v#{save_counter}=", "v#{array_counter}_arr[#{loop_iterator}]=")
+		end
+		return str
+		# str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=" + ((@noeffect_vars.include? "v#{save_counter}") ? "0" : "v#{save_counter}") + ";\n"
+	end
+
+	def branching_for_11(cnf, branch_prv, array_counter, loop_iterator, unit_prop_string, cache, to_evaluate, save_counter, branch_lv, first_is_1, second_is_1)
+		str = ""
+		cnf_dup_loop_11 = cnf.duplicate
+		cnf_dup_loop_11.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "1")} if first_is_1
+		cnf_dup_loop_11.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "2")} if second_is_1
+		to_evaluate2 = cnf_dup_loop_11.clauses.select{|clause| clause.can_be_evaluated?}
+		cnf_dup_loop_11.clauses -= to_evaluate2
+		str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop_11, cache.duplicate, to_evaluate + to_evaluate2, save_counter, branch_lv)
+		return str
+	end
+
+	def loop_string(array_counter, branch_prv, branch_lv, cnf, cache)
+		str = ""
+		cnf_dup = cnf.duplicate
+		save_counter = @counter
+		str << Helper.indent(1) + "double v#{array_counter}_arr[MAX];\n"
+		loop_iterator = "i_" + branch_prv.full_name + "_i"
+		str << Helper.indent(1) + "C_#{loop_iterator}=0;#{@new_line}"
+		@doubles |= ["C_#{loop_iterator}"]
+		str << Helper.indent(1) + "for(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"			
+		
+		str << Helper.indent(2) + "if(#{loop_iterator}==0){\n"
+		str << branching_for_boundaries(cnf_dup, loop_iterator, cache, array_counter, save_counter, branch_prv, "0")
 		str << Helper.indent(2) + "}\n"
+
+		save_counter = @counter
+		str << Helper.indent(2) + "else if(#{loop_iterator}==#{branch_lv.psize}){\n"
+		str << branching_for_boundaries(cnf_dup, loop_iterator, cache, array_counter, save_counter, branch_prv, "n")
+		str << Helper.indent(2) + "}\n"
+		
+		cnf_dup_loop = cnf.duplicate
+		cnf_dup_loop.branch(branch_prv, "#{loop_iterator}")
+		cnf_dup_loop.apply_branch_observation(branch_prv)
+		cnf_dup_loop.remove_resolved_constraints
+		to_evaluate = cnf_dup_loop.clauses.select{|clause| clause.can_be_evaluated?}
+		cnf_dup_loop.clauses -= to_evaluate
+
+		#~~~~ Unit propagation before going to each case. Note we do unit propagation only on clauses with no constraints because the ones having constraints may be changed during special cases.~~~~#
+		unit_prop_string = ""
+		unit_clauses = cnf_dup_loop.unit_clauses.select{|clause| clause.constraints.empty?}
+		if  unit_clauses.size > 0
+			unit_prop_string, to_evaluate = cnf_dup_loop.apply_unit_propagation(unit_clauses, @weights)
+			if(unit_prop_string == "false")
+				str << Helper.indent(2) + "else{\n"
+				str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=-2000;\n"
+				str << Helper.indent(2) + "}\n"
+				str << Helper.indent(1) + "}\n"
+				str << Helper.indent(1) + "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{array_counter}")
+				str << "}\n"
+				return str
+			end
+			to_evaluate2 = cnf_dup_loop.clauses.select{|clause| clause.can_be_evaluated?}
+			cnf_dup_loop.clauses -= to_evaluate2.to_a
+
+			to_evaluate = to_evaluate.to_a + to_evaluate2.to_a
+			to_evaluate = nil if to_evaluate.empty?
+		end
+
+		if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "1") and cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2"))
+			save_counter = @counter
+			str << Helper.indent(2) + "else if(#{loop_iterator}==1 && #{branch_lv.psize}==2){\n"
+			str << branching_for_11(cnf_dup_loop, branch_prv, array_counter, loop_iterator, unit_prop_string, cache, to_evaluate, save_counter, branch_lv, true, true)
+			str << Helper.indent(2) + "}\n"
+		end
+		if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "1"))
+			save_counter = @counter
+			str << Helper.indent(2) + "else if(#{loop_iterator}==1){\n"
+			str << branching_for_11(cnf_dup_loop, branch_prv, array_counter, loop_iterator, unit_prop_string, cache, to_evaluate, save_counter, branch_lv, true, false)
+			str << Helper.indent(2) + "}\n"
+		end
+		if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2"))
+			save_counter = counter
+			str << Helper.indent(2) + "else if(#{loop_iterator}==#{branch_lv.psize}-1){\n"
+			str << branching_for_11(cnf_dup_loop, branch_prv, array_counter, loop_iterator, unit_prop_string, cache, to_evaluate, save_counter, branch_lv, false, true)
+			str << Helper.indent(2) + "}\n"
+		end
+		save_counter = counter
+		str << Helper.indent(2) + "else{\n"
+		cnf_dup_loop.remove_resolved_constraints
+		str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop, cache.duplicate, to_evaluate, save_counter, branch_lv)
+		str << Helper.indent(2) + "}\n"
+
+		str << Helper.indent(2) + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
+		str << Helper.indent(1) + "}\n"
+		str << Helper.indent(1) + "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{array_counter}")
+		return str
 	end
 
 	def compile(cnf, cache)
@@ -157,132 +281,46 @@ class WFOMC
 			array_counter = save_counter
 			save_counter = @counter
 			branch_lv = branch_prv.first_lv
-			str << "if(#{branch_lv.psize}==0){\n"
-			cnf_dup_00 = cnf.duplicate
-			cnf_dup_00.remove_clauses_having_logvar(branch_lv)
 
-			compile(cnf_dup_00, cache.duplicate).each_line {|line| str << Helper.indent(1) + line}
-			str << Helper.indent(1) + "v#{array_counter}=#{eval_str(cnf_dup_00, Array.new, 'v' + (save_counter).to_s)};\n"
-			str << "}\n"
+			branch_lv_num_psize = Helper.num_value(branch_lv.psize)
 
-			if(cnf_dup.has_lv_neq_lv_constraint_with_type? (branch_lv.type))
-				save_counter = @counter
-				str << "if(#{branch_lv.psize}==1){\n"
-				cnf_dup_1 = cnf.duplicate
-				cnf_dup_1.remove_pop1_constraints(branch_lv)
-				to_evaluate = cnf_dup_1.clauses.select{|clause| clause.can_be_evaluated?}
-				cnf_dup_1.clauses -= to_evaluate
+			if(branch_lv_num_psize == 0)
+				str << branching_for_psize_0_string(cnf_dup, branch_lv, cache, array_counter, save_counter)
+			elsif(branch_lv_num_psize == 1 and cnf_dup.has_lv_neq_lv_constraint_with_type? (branch_lv.type))
+				str << branching_for_psize_1_string(cnf_dup, branch_lv, cache, array_counter, save_counter)
+			elsif(not branch_lv_num_psize.nil?)
+				str << loop_string(array_counter, branch_prv, branch_lv, cnf_dup, cache)
+			else
+				str << "if(#{branch_lv.psize}==0){\n"
+				str << branching_for_psize_0_string(cnf_dup, branch_lv, cache, array_counter, save_counter)
+				str << "}\n"
 
-				compile(cnf_dup_1, cache.duplicate).each_line {|line| str << Helper.indent(1) + line}
-				str << Helper.indent(1) + "v#{array_counter}=#{eval_str(cnf_dup_1, to_evaluate, 'v' + (save_counter).to_s)};\n"
+				if(cnf_dup.has_lv_neq_lv_constraint_with_type? (branch_lv.type))
+					save_counter = @counter
+					str << "if(#{branch_lv.psize}==1){\n"
+					str << branching_for_psize_1_string(cnf_dup, branch_lv, cache, array_counter, save_counter)
+					str << "}\n"
+				end
+
+				str << "else{\n"
+				str << loop_string(array_counter, branch_prv, branch_lv, cnf_dup, cache)
 				str << "}\n"
 			end
+					
+			# str << "if(#{branch_lv.psize}==0){\n"
+			# str << branching_for_psize_0_string(cnf_dup, branch_lv, cache, array_counter, save_counter)
+			# str << "}\n"
 
-			save_counter = @counter
-			str << "else{\n"
-			str << Helper.indent(1) + "double v#{array_counter}_arr[MAX];\n"
-			loop_iterator = "i_" + branch_prv.full_name + "_i"
-			str << Helper.indent(1) + "C_#{loop_iterator}=0;#{@new_line}"
-			@doubles |= ["C_#{loop_iterator}"]
-			str << Helper.indent(1) + "for(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"			
-			
-			str << Helper.indent(2) + "if(#{loop_iterator}==0){\n"
-			cnf_dup_0 = cnf.duplicate
-			clause_0 = Clause.new([branch_prv.lit("false")], Array.new)
-			cnf_dup_0.clauses << clause_0
+			# if(cnf_dup.has_lv_neq_lv_constraint_with_type? (branch_lv.type))
+			# 	save_counter = @counter
+			# 	str << "if(#{branch_lv.psize}==1){\n"
+			# 	str << branching_for_psize_1_string(cnf_dup, branch_lv, cache, array_counter, save_counter)
+			# 	str << "}\n"
+			# end
 
-			compile(cnf_dup_0, cache.duplicate).each_line {|line| str << Helper.indent(3) + line}
-			if(@noeffect_vars.include? "v#{save_counter}")
-				str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=0;\n"
-			else
-				str.gsub!("v#{save_counter}=", "v#{array_counter}_arr[#{loop_iterator}]=")
-			end
-			# str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=" + ((@noeffect_vars.include? "v#{save_counter}") ? "0" : "v#{save_counter}") + ";\n"
-			save_counter = @counter
-			str << Helper.indent(2) + "}\n"
-			str << Helper.indent(2) + "else if(#{loop_iterator}==#{branch_lv.psize}){\n"
-			cnf_dup_n = cnf.duplicate
-			clause_n = Clause.new([branch_prv.lit("true")], Array.new)
-			cnf_dup_n.clauses << clause_n
-
-			compile(cnf_dup_n, cache.duplicate).each_line {|line| str << Helper.indent(3) + line}
-			if(@noeffect_vars.include? "v#{save_counter}")
-				str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=0;\n"
-			else
-				str.gsub!("v#{save_counter}=", "v#{array_counter}_arr[#{loop_iterator}]=")
-			end
-			# str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=" + ((@noeffect_vars.include? "v#{save_counter}") ? "0" : "v#{save_counter}") + ";\n"
-			str << Helper.indent(2) + "}\n"
-			
-			cnf_dup_loop = cnf.duplicate
-			cnf_dup_loop.branch(branch_prv, "#{loop_iterator}")
-			cnf_dup_loop.apply_branch_observation(branch_prv)
-			cnf_dup_loop.remove_resolved_constraints
-			to_evaluate = cnf_dup_loop.clauses.select{|clause| clause.can_be_evaluated?}
-			cnf_dup_loop.clauses -= to_evaluate
-
-			#~~~~ Unit propagation before going to each case. Note we do unit propagation only on clauses with no constraints because the ones having constraints may be changed during special cases.~~~~#
-			unit_prop_string = ""
-			unit_clauses = cnf_dup_loop.unit_clauses.select{|clause| clause.constraints.empty?}
-			if  unit_clauses.size > 0
-				unit_prop_string, to_evaluate = cnf_dup_loop.apply_unit_propagation(unit_clauses, @weights)
-				if(unit_prop_string == "false")
-					str << Helper.indent(2) + "else{\n"
-					str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=-2000;\n"
-					str << Helper.indent(2) + "}\n"
-					str << Helper.indent(1) + "}\n"
-					str << Helper.indent(1) + "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{array_counter}")
-					str << "}\n"
-					return str
-				end
-				to_evaluate2 = cnf_dup_loop.clauses.select{|clause| clause.can_be_evaluated?}
-				cnf_dup_loop.clauses -= to_evaluate2.to_a
-
-				to_evaluate = to_evaluate.to_a + to_evaluate2.to_a
-				to_evaluate = nil if to_evaluate.empty?
-			end
-
-			if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "1") and cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2"))
-				save_counter = @counter
-				str += Helper.indent(2) + "else if(#{loop_iterator}==1 && #{branch_lv.psize}==2){\n"
-				cnf_dup_loop_11 = cnf_dup_loop.duplicate
-				cnf_dup_loop_11.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "1")}
-				cnf_dup_loop_11.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "2")}
-				to_evaluate2 = cnf_dup_loop_11.clauses.select{|clause| clause.can_be_evaluated?}
-				cnf_dup_loop_11.clauses -= to_evaluate2
-				str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop_11, cache.duplicate, to_evaluate + to_evaluate2, save_counter, branch_lv)
-			end
-			if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "1"))
-				save_counter = @counter
-				str << Helper.indent(2) + "else if(#{loop_iterator}==1){\n"
-				cnf_dup_loop_1n = cnf_dup_loop.duplicate
-				cnf_dup_loop_1n.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "1")}
-				to_evaluate2 = cnf_dup_loop_1n.clauses.select{|clause| clause.can_be_evaluated?}
-				cnf_dup_loop_1n.clauses -= to_evaluate2
-				if(branch_prv.core_name == "G")
-					puts cnf_dup_loop_1n.my2string
-				end
-				str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop_1n, cache.duplicate, to_evaluate + to_evaluate2, save_counter, branch_lv)
-			end
-			if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2"))
-				save_counter = counter
-				str << Helper.indent(2) + "else if(#{loop_iterator}==#{branch_lv.psize}-1){\n"
-				cnf_dup_loop_n1 = cnf_dup_loop.duplicate
-				cnf_dup_loop_n1 = cnf_dup_loop.duplicate
-				cnf_dup_loop_n1.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "2")}
-				to_evaluate2 = cnf_dup_loop_n1.clauses.select{|clause| clause.can_be_evaluated?}
-				cnf_dup_loop_n1.clauses -= to_evaluate2
-				str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop_n1, cache.duplicate, to_evaluate + to_evaluate2, save_counter, branch_lv)
-			end
-			save_counter = counter
-			str << Helper.indent(2) + "else{\n"
-			cnf_dup_loop.remove_resolved_constraints
-			str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop, cache.duplicate, to_evaluate, save_counter, branch_lv)
-			
-			str << Helper.indent(2) + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
-			str << Helper.indent(1) + "}\n"
-			str << Helper.indent(1) + "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{array_counter}")
-			str << "}\n"
+			# str << "else{\n"
+			# str << loop_string(array_counter, branch_prv, branch_lv, cnf_dup, cache)
+			# str << "}\n"
 			return str
 		else
 			puts cnf_dup.my2string
