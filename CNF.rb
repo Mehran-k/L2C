@@ -448,10 +448,13 @@ class CNF
 		unit_weights = ""
 		unit_clauses.each do |unit_clause|
 			if(unit_clause.literals.size > 0) #previous unit clauses may make others disapper
-				puts "Unit Propagation on #{unit_clause.literals[0].prv.my2string}"
+				# puts "Unit Propagation on #{unit_clause.literals[0].prv.my2string}"
 				literal = unit_clause.literals[0]
-				if(weights[literal.prv.core_name] != [0, 0])
-					unit_weights << (literal.value == "true" ? weights[literal.prv.core_name][0].to_s : weights[literal.prv.core_name][1].to_s) + "*" + literal.prv.psize(unit_clause.constraints).to_s + "+"
+				value = literal.value
+				if(value == "true" and weights[literal.prv.core_name][0] != 0.0)
+					unit_weights << weights[literal.prv.core_name][0].to_s + "*" + literal.prv.psize(unit_clause.constraints).to_s + "+"
+				elsif(value == "false" and weights[literal.prv.core_name][1] != 0.0) 
+					unit_weights << weights[literal.prv.core_name][1].to_s + "*" + literal.prv.psize(unit_clause.constraints).to_s + "+"
 				end
 				self.propagate(unit_clause)
 				self.remove_resolved_constraints

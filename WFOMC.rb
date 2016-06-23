@@ -57,10 +57,6 @@ class WFOMC
 
 	def compile(cnf, cache)
 
-		# puts "Compile was called with the follwing CNF:"
-		# puts cnf.my2string
-		# puts "\n"
-
 		# @num_iterate += 1
 		# exit if @num_iterate > 60
 
@@ -70,7 +66,6 @@ class WFOMC
 		@counter += 1
 
 		if  cnf_dup.clauses.size == 0
-			# puts "CNF was empty. Returning..."
 			@noeffect_vars << "v#{save_counter}"
 			return ""
 		end
@@ -87,16 +82,15 @@ class WFOMC
 		if  unit_clauses.size > 0
 			unit_prop_string, to_evaluate = cnf_dup.apply_unit_propagation(unit_clauses, @weights)
 			return "v#{save_counter}=-2000;\n" if(unit_prop_string == "false")
-
-			puts "After unit propagation the CNF is as follows:"
-			puts cnf_dup.my2string
-			puts "\n"
 			
 			compile(cnf_dup, cache).each_line {|line| str << line}
-			to_eval_string = eval_str(cnf_dup, to_evaluate, "v" + (save_counter+1).to_s)
+			to_eval_string = eval_str(cnf_dup, to_evaluate, "v#{save_counter+1}")
 
-			if(save_counter != 1 and to_eval_string == "0" and unit_prop_string == "")
+			# if(save_counter != 1 and to_eval_string == "0" and unit_prop_string == "")
+			if(to_eval_string == "0" and unit_prop_string == "")
 				@noeffect_vars << "v#{save_counter}"
+			elsif(to_eval_string == "v#{save_counter+1}" and unit_prop_string == "")
+				str.gsub!("v#{save_counter+1}=", "v#{save_counter}=")
 			else
 				str += "v#{save_counter}=#{unit_prop_string}#{to_eval_string};\n"
 			end
@@ -105,14 +99,9 @@ class WFOMC
 
 		cc = cnf_dup.connected_components
 		if  cc.size != 1
-			puts "the network is disconnected!"
 			product = ""#this is the product of all connected components
 			cc.each_with_index do |cc_cnf, i|
-				puts "Connected component number: #{i+1} is as follows:"
-				puts cc_cnf.my2string
-				puts "\n"
 				product += "v#{@counter}+"
-				puts "~~Calling compile for it~~"
 				compile(cc_cnf, cache).each_line {|line| str += line}
 			end
 			return str << "v#{save_counter}=#{product.chop};\n" << cache.add(cnf, "v#{save_counter}")
@@ -121,38 +110,31 @@ class WFOMC
 		pop_size, decomposer_lv_pos, prv_pos = cnf_dup.get_decomposer_lv
 		if not decomposer_lv_pos.nil?
 			decomposer_lv_type = cnf_dup.clauses[0].literals[0].prv.terms[decomposer_lv_pos[prv_pos[cnf_dup.clauses[0].literals[0].name]]-1].type
-			puts "Grounding is disconnected with positions: #{decomposer_lv_pos} having logvars of type: #{decomposer_lv_type}"
 			cnf_dup.decompose(decomposer_lv_pos, prv_pos)
 			# cnf_dup.remove_all_lv_neq_constant_constraints(false)
 			cnf_dup.adjust_after_decomposition(decomposer_lv_type)
 			cnf_dup.replace_no_lv_prvs_with_rvs
-			puts "After decomposition, shattering, ..., the resulting CNF is as follows:"
-			puts cnf_dup.my2string
-			puts "\n"
 			compile(cnf_dup, cache).each_line {|line| str += line}
 			str += "v#{save_counter}=v#{save_counter + 1}*(#{pop_size});\n"
 			return str + cache.add(cnf, "v#{save_counter}")
 		end
 
 		if cnf_dup.fo2
-			puts "There are only 2lv logvars and the grounding is disconnected"
+			# puts "There are only 2lv logvars and the grounding is disconnected"
 			has_neq_constraint = (cnf_dup.clauses[0].constraints.size > 0 ? true : false)
 			psize = cnf_dup.clauses[0].logvars[0].psize
 			cnf_dup.replace_individuals_for_fo2
 			# cnf_dup.remove_all_lv_neq_constant_constraints(false)
 			cnf_dup.replace_no_lv_prvs_with_rvs
 			str = ""
-			puts "After decomposition, shattering, ..., the CNF is as follows:"
-			puts cnf_dup.my2string
-			puts "\n"
 			compile(cnf_dup, cache).each_line {|line| str += line}
 			str += "v#{save_counter}=v#{save_counter+1}*(#{psize} * (#{psize} - 1) / 2.0);\n"
 			return str + cache.add(cnf, "v#{save_counter}")
 		end
 
 		branch_prv = cnf_dup.next_prv(@order)
-		puts "Order: " + @order.join(",")
-		puts "No rules can be applied. Branching on: " + branch_prv.my2string
+		# puts "Order: " + @order.join(",")
+		# puts "No rules can be applied. Branching on: " + branch_prv.my2string
 
 		if  branch_prv.num_distinct_lvs == 0
 			cnf_dup.update(branch_prv.full_name, "true")
@@ -179,14 +161,13 @@ class WFOMC
 			cnf_dup_00 = cnf.duplicate
 			cnf_dup_00.remove_clauses_having_logvar(branch_lv)
 
-			compile(cnf_dup_00, cache.duplicate).each_line {|line| str << line}
+			compile(cnf_dup_00, cache.duplicate).each_line {|line| str << Helper.indent(1) + line}
 			str << Helper.indent(1) + "v#{array_counter}=#{eval_str(cnf_dup_00, Array.new, 'v' + (save_counter).to_s)};\n"
 			str << "}\n"
 
 			if(cnf_dup.has_lv_neq_lv_constraint_with_type? (branch_lv.type))
-				puts "Going into the case where the population size of the PRV to be branched on is one"
 				save_counter = @counter
-				str << "else if(#{branch_lv.psize}==1){\n"
+				str << "if(#{branch_lv.psize}==1){\n"
 				cnf_dup_1 = cnf.duplicate
 				cnf_dup_1.remove_pop1_constraints(branch_lv)
 				to_evaluate = cnf_dup_1.clauses.select{|clause| clause.can_be_evaluated?}
@@ -211,7 +192,12 @@ class WFOMC
 			cnf_dup_0.clauses << clause_0
 
 			compile(cnf_dup_0, cache.duplicate).each_line {|line| str << Helper.indent(3) + line}
-			str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=" + ((@noeffect_vars.include? "v#{save_counter}") ? "0" : "v#{save_counter}") + ";\n"
+			if(@noeffect_vars.include? "v#{save_counter}")
+				str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=0;\n"
+			else
+				str.gsub!("v#{save_counter}=", "v#{array_counter}_arr[#{loop_iterator}]=")
+			end
+			# str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=" + ((@noeffect_vars.include? "v#{save_counter}") ? "0" : "v#{save_counter}") + ";\n"
 			save_counter = @counter
 			str << Helper.indent(2) + "}\n"
 			str << Helper.indent(2) + "else if(#{loop_iterator}==#{branch_lv.psize}){\n"
@@ -220,7 +206,12 @@ class WFOMC
 			cnf_dup_n.clauses << clause_n
 
 			compile(cnf_dup_n, cache.duplicate).each_line {|line| str << Helper.indent(3) + line}
-			str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=" + ((@noeffect_vars.include? "v#{save_counter}") ? "0" : "v#{save_counter}") + ";\n"
+			if(@noeffect_vars.include? "v#{save_counter}")
+				str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=0;\n"
+			else
+				str.gsub!("v#{save_counter}=", "v#{array_counter}_arr[#{loop_iterator}]=")
+			end
+			# str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=" + ((@noeffect_vars.include? "v#{save_counter}") ? "0" : "v#{save_counter}") + ";\n"
 			str << Helper.indent(2) + "}\n"
 			
 			cnf_dup_loop = cnf.duplicate
@@ -268,6 +259,9 @@ class WFOMC
 				cnf_dup_loop_1n.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "1")}
 				to_evaluate2 = cnf_dup_loop_1n.clauses.select{|clause| clause.can_be_evaluated?}
 				cnf_dup_loop_1n.clauses -= to_evaluate2
+				if(branch_prv.core_name == "G")
+					puts cnf_dup_loop_1n.my2string
+				end
 				str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop_1n, cache.duplicate, to_evaluate + to_evaluate2, save_counter, branch_lv)
 			end
 			if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2"))
@@ -283,7 +277,7 @@ class WFOMC
 			save_counter = counter
 			str << Helper.indent(2) + "else{\n"
 			cnf_dup_loop.remove_resolved_constraints
-			str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop, cache.duplicate, to_evaluate + to_evaluate2, save_counter, branch_lv)
+			str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, unit_prop_string, cnf_dup_loop, cache.duplicate, to_evaluate, save_counter, branch_lv)
 			
 			str << Helper.indent(2) + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
 			str << Helper.indent(1) + "}\n"

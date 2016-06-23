@@ -68,7 +68,7 @@ puts "~~~~~~~~~~~~~~~~"
 puts "Finding the branching order"
 bo = BranchingOrder.new(cnf)
 order = bo.min_nested_loop_order(num_sls)
-# order = ["F_r1", "Friend_r1", "C", "S", "T", "Friend", "F"]
+order = ["S", "C", "Friend", "Friend_r1", "F", "F_r1", "G"]
 puts "The order has been decided: #{order.join(',')}"
 weight_function = cnf.adjust_weights(parser.weights)
 wfomc = WFOMC.new(weight_function, max_pop_size)

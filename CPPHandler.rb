@@ -2,7 +2,7 @@ class CPPHandler
 	attr_accessor :core, :doubles, :queues
 
 	def initialize(core, doubles, queues)
-		@core = core
+		@core = core.gsub("+0;", ";")
 		@doubles = doubles
 		@queues = queues
 	end
