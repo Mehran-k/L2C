@@ -102,7 +102,7 @@ class WFOMC
 		return str
 	end
 
-	def loop_string(array_counter, branch_prv, branch_lv, cnf, cache)
+	def loop_string(array_counter, branch_prv, branch_lv, cnf, cache, branch_lv_num_psize)
 		str = ""
 		cnf_dup = cnf.duplicate
 		save_counter = @counter
@@ -149,7 +149,7 @@ class WFOMC
 			to_evaluate = nil if to_evaluate.empty?
 		end
 
-		if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "1") and cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2"))
+		if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "1") and cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2") and (branch_lv_num_psize == 2 or branch_lv_num_psize.nil?))
 			save_counter = @counter
 			str << Helper.indent(2) + "else if(#{loop_iterator}==1 && #{branch_lv.psize}==2){\n"
 			str << branching_for_11(cnf_dup_loop, branch_prv, array_counter, loop_iterator, unit_prop_string, cache, to_evaluate, save_counter, branch_lv, true, true)
@@ -289,7 +289,7 @@ class WFOMC
 			elsif(branch_lv_num_psize == 1 and cnf_dup.has_lv_neq_lv_constraint_with_type? (branch_lv.type))
 				str << branching_for_psize_1_string(cnf_dup, branch_lv, cache, array_counter, save_counter)
 			elsif(not branch_lv_num_psize.nil?)
-				str << loop_string(array_counter, branch_prv, branch_lv, cnf_dup, cache)
+				str << loop_string(array_counter, branch_prv, branch_lv, cnf_dup, cache, branch_lv_num_psize)
 			else
 				str << "if(#{branch_lv.psize}==0){\n"
 				str << branching_for_psize_0_string(cnf_dup, branch_lv, cache, array_counter, save_counter)
@@ -306,21 +306,6 @@ class WFOMC
 				str << loop_string(array_counter, branch_prv, branch_lv, cnf_dup, cache)
 				str << "}\n"
 			end
-					
-			# str << "if(#{branch_lv.psize}==0){\n"
-			# str << branching_for_psize_0_string(cnf_dup, branch_lv, cache, array_counter, save_counter)
-			# str << "}\n"
-
-			# if(cnf_dup.has_lv_neq_lv_constraint_with_type? (branch_lv.type))
-			# 	save_counter = @counter
-			# 	str << "if(#{branch_lv.psize}==1){\n"
-			# 	str << branching_for_psize_1_string(cnf_dup, branch_lv, cache, array_counter, save_counter)
-			# 	str << "}\n"
-			# end
-
-			# str << "else{\n"
-			# str << loop_string(array_counter, branch_prv, branch_lv, cnf_dup, cache)
-			# str << "}\n"
 			return str
 		else
 			puts cnf_dup.my2string
