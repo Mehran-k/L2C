@@ -14,13 +14,19 @@ class Constraint
 		swap_terms if(@term1.class == Constant and @term2.class == LogVar)
 	end
 
+	def replace_terms_with_type(old_type, new_term)
+		@term1 = new_term.duplicate if @term1.class == LogVar and @term1.type == old_type
+		@term2 = new_term.duplicate if @term2.class == LogVar and @term2.type == old_type
+		swap_terms if(@term1.class == Constant and @term2.class == LogVar)
+	end
+
 	def swap_terms
 		temp = @term1.duplicate
 		@term1 = @term2
 		@term2 = temp
 	end
 
-	def match(term1, term2, constraint)
+	def match_name?(term1, term2, constraint)
 		return false if @constraint != constraint
 		return false if @term1.class != term1.class or @term2.class != @term2.class
 		return true if @term1.name == term1.name and @term2.name == term2.name
@@ -28,7 +34,24 @@ class Constraint
 		return false
 	end
 
-	def is_resolved
+	def match_type?(term1, term2, constraint)
+		return false if @constraint != constraint
+		return false if @term1.class != term1.class or @term2.class != @term2.class
+		return false if @term1.class == Constant and @term1.name != term1.name
+		return false if @term2.class == Constant and @term2.name != term2.name
+		return false if @term1.class == LogVar and @term1.type != term1.type
+		return false if @term2.class == LogVar and @term2.type != term2.type
+		return true
+	end
+
+	def match_type2? (type, constraint)
+		return false if @constraint != constraint
+		return false if @term1.class != LogVar or @term1.type != type
+		return false if @term2.class != LogVar or @term2.type != type
+		return true
+	end
+
+	def is_resolved?
 		if @term1.class == Constant and @term2.class == Constant and !@term1.is_same_as(@term2)
 			return true
 		elsif @term1.class == LogVar and @term2.class == LogVar and term1.type != term2.type
@@ -37,20 +60,25 @@ class Constraint
 		return false
 	end
 
-	def lv_neq_const
+	def contradicts?
+		return true if @term1.name == @term2.name
+		return false
+	end
+
+	def lv_neq_const?
 		(@term1.class == LogVar and @term2.class == Constant) ? true : false
 	end
 
-	def lv_neq_lv
+	def lv_neq_lv?
 		(@term1.class == LogVar and @term2.class == LogVar) ? true : false
 	end
 
-	def is_resolved_after_removing_constant(lv, const)
-		return true if lv_neq_const and @term1.is_same_as(lv) and @term2.is_same_as(const)
+	def is_resolved_after_removing_constant?(lv, const)
+		return true if lv_neq_const? and @term1.is_same_as(lv) and @term2.is_same_as(const)
 		return false
 	end
 
 	def my2string
-		return @term1.my2string + constraint + @term2.my2string + (is_resolved ? "(RESOLVED)" : "")
+		return @term1.my2string + constraint + @term2.my2string + (is_resolved? ? "(RESOLVED)" : "")
 	end
 end

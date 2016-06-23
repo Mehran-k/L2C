@@ -13,7 +13,11 @@ class LogVar
 	end
 
 	def decrement_psize #psize may become negative at runtime
-		@psize = "(" + @psize + "-1)"
+		if(@psize.to_i.to_s == @psize)
+			@psize = (@psize.to_i - 1).to_s
+		else
+			@psize = "(" + @psize + "-1)"
+		end
 	end
 
 	def my2string

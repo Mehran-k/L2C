@@ -54,7 +54,7 @@ class Parser
 					constraints_string = nil
 				else
 					literals_string = nospace_line[0..nospace_line.rindex(",")-1].split(/["v|V|\|"]/)
-					constraints_string = nospace_line[nospace_line.rindex(",")+1..nospace_line.size].split(/["v|V|\|"]/)
+					constraints_string = nospace_line[nospace_line.rindex(",")+1..nospace_line.size].split("^")
 				end
 				literals = Array.new
 				all_logvars = Hash.new
@@ -87,7 +87,13 @@ class Parser
 				if(!constraints_string.nil?)
 					constraints_string.each do |constraint|
 						spl = constraint.split("!=")
-						constraints << Constraint.new(all_logvars[spl[0]], all_logvars[spl[1]], "!=")
+						if(!all_logvars[spl[0]].nil? and !all_logvars[spl[1]].nil?)
+							constraints << Constraint.new(all_logvars[spl[0]], all_logvars[spl[1]], "!=")
+						elsif(!all_logvars[spl[0]].nil?)
+							constraints << Constraint.new(all_logvars[spl[0]], Constant.new(spl[1]), "!=")
+						else
+							constraints << Constraint.new(all_logvars[spl[1]], Constant.new(spl[0]), "!=")
+						end
 					end
 				end
 				clause = Clause.new(literals, constraints)
@@ -101,28 +107,28 @@ class Parser
 	def check_formula_syntax(line, i)
 		if line.index("!=").nil? 
 			literals = line.split(/["v|V|\|"]/)
-			equalities = nil
+			constraints = nil
 		else
 			literals = line[0..line.rindex(",")-1].split(/["v|V|\|"]/)
-			equalities = line[line.rindex(",")+1..line.size].split(/["v|V|\|"]/)
+			constraints = line[line.rindex(",")+1..line.size].split("^")
 		end
 		literals.each do |literal|
 			literal = literal[1..literal.size] if literal.start_with? "!" or literal.start_with? "~"
 			check_predicate_used(literal, i)
 		end
-		if(!equalities.nil?)
-			equalities.each do |eq|
-				check_equality_syntax(eq, literals.join("v"), i)
+		if(!constraints.nil?)
+			constraints.each do |constraint|
+				check_constraint_syntax(constraint, literals.join("v"), i)
 			end
 		end
 	end
 
-	def check_equality_syntax(equality, formula, i)
-		if(equality.index("!=").nil?)
+	def check_constraint_syntax(constraint, formula, i)
+		if(constraint.index("!=").nil?)
 			Helper.error("Invalid equality syntax in line #{i}")
 		else
-			spl = equality.split("!=")
-			if(formula.index(spl[0]).nil? or formula.index(spl[1]).nil?)
+			spl = constraint.split("!=")
+			if(formula.index(spl[0]).nil? and formula.index(spl[1]).nil?) #at least one of them must be a logical variable
 				Helper.error("Logical variables used in the equality statement in line #{i} are not used in the clause")
 			end
 		end

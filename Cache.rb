@@ -71,5 +71,9 @@ class Cache
 		end
 		return new_prog
 	end
+
+	def duplicate
+		Marshal::load(Marshal.dump(self))
+	end
 end
 

@@ -21,14 +21,43 @@ class Clause
 		return lv_hash.keys.size
 	end
 
-	def can_be_evaluated
+	def can_be_evaluated?
 		@is_true or @literals.size == 0
 	end
 
-	def has_constraint(term1, term2, constraint)
-		@constraints.each do |clause_constraint|
-			return true if clause_constraint.match(term1, term2, constraint)
+	def break_lv_neq_lv_to_lv_neq_constant(type, constant)
+		@constraints.each do |constraint|
+			if constraint.lv_neq_lv? and constraint.term1.type == type and constraint.term2.type == type
+				new_constraint1 = Constraint.new(constraint.term1.duplicate, constant.duplicate, "!=")
+				new_constraint2 = Constraint.new(constraint.term2.duplicate, constant.duplicate, "!=")
+				@constraints -= [constraint]
+				@constraints += [new_constraint1, new_constraint2]
+			end
 		end
+	end
+
+	def has_lv_with_type? (type)
+		@literals.each {|literal| return true if literal.prv.has_lv_with_type?(type)}
+		return false
+	end
+
+	def has_constraint_with_name? (term1, term2, constraint)
+		@constraints.each {|clause_constraint| return true if clause_constraint.match_name?(term1, term2, constraint)}
+		return false
+	end
+
+	def has_constraint_with_type? (term1, term2, constraint)
+		@constraints.each {|clause_constraint| return true if clause_constraint.match_type?(term1, term2, constraint)}
+		return false
+	end
+
+	def has_lv_neq_lv_constraint_with_type? (type)
+		@constraints.each {|constraint| return true if constraint.match_type2?(type, "!=") }
+		return false
+	end
+
+	def has_contradictory_constraint?
+		@constraints.each {|constraint| return true if constraint.contradicts?}
 		return false
 	end
 
@@ -36,14 +65,22 @@ class Clause
 		@constraints << Constraint.new(term1, term2, constraint)
 	end
 
-	def remove_lv_neq_const(lv, const)
+	def decrement_lv_size(lv)
 		@literals.each do |literal|
 			literal.prv.logvars.each_with_index do |prv_lv, i|
 				literal.prv.logvars[i].decrement_psize if prv_lv.is_same_as(lv)	
 			end
 		end
-		@constraints.select!{|constraint| !constraint.is_resolved_after_removing_constant(lv, const)}
 	end
+
+	# def remove_lv_neq_const(lv, const)
+	# 	@literals.each do |literal|
+	# 		literal.prv.logvars.each_with_index do |prv_lv, i|
+	# 			literal.prv.logvars[i].decrement_psize if prv_lv.is_same_as(lv)	
+	# 		end
+	# 	end
+	# 	@constraints.select!{|constraint| !constraint.is_resolved_after_removing_constant(lv, const)}
+	# end
 
 	def update(prv_name, value) #note that update only drops literals from the clause. It does not (and should not) change L
 		@literals.each do |literal|
@@ -54,9 +91,35 @@ class Clause
 		end
 	end
 
+	def get_all_lvs
+		@literals.map{|literal| literal.prv.logvars}.flatten
+	end
+
+	def get_all_distinct_lvs
+		lv_hash = Hash.new
+		lvs = Array.new
+		@literals.each do |literal|
+			literal.prv.logvars.each do |lv|
+				lvs << lv if lv_hash[lv.name].nil?
+				lv_hash[lv.name] = "true"
+			end
+		end
+		return lvs
+	end
+
 	def replace_all_lvs(old_lv, new_term)
 		@literals.each {|literal| literal.prv.replace_all_lvs(old_lv, new_term)}
 		@constraints.each {|constraint| constraint.replace_terms(old_lv, new_term)}
+	end
+
+	def replace_all_lvs_and_prv_names(old_lv, new_term)
+		@literals.each {|literal| literal.prv.replace_all_lvs_and_prv_names(old_lv, new_term)}
+		@constraints.each {|constraint| constraint.replace_terms(old_lv, new_term)}
+	end
+
+	def replace_all_lvs_with_type(old_type, new_term)
+		@literals.each {|literal| literal.prv.replace_all_lvs_with_type(old_type, new_term)}
+		@constraints.each {|constraint| constraint.replace_terms_with_type(old_type, new_term)}
 	end
 
 	def replace_all_prvs(prv1, prv2)
@@ -86,7 +149,7 @@ class Clause
 			str += @literals.map{|lit| lit.my2string}.join("v")
 		end
 		if(@constraints.size != 0)
-			str << "," + @constraints.map{|constraint| constraint.my2string}.join("v")
+			str << "," + @constraints.map{|constraint| constraint.my2string}.join(" ^ ")
 		end
 		return str + ">" + (@is_true ? "(TRUE)" : "")
 	end

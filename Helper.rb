@@ -17,4 +17,8 @@ class Helper
 	def self.is_float(str)
 		str.to_i.to_s == str || str.to_f.to_s == str
 	end
+
+	def self.indent(num)
+		return "\t" * num
+	end
 end

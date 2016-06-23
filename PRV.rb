@@ -44,6 +44,11 @@ class PRV
 		return nil
 	end
 
+	def has_lv_with_type?(type)
+		@terms.each {|term| return true if term.class == LogVar and term.type == type}
+		return false
+	end
+
 	def has_lv_with_name(name)
 		@terms.each{|term| return true if term.class == LogVar and term.name == name}
 		return false
@@ -62,14 +67,27 @@ class PRV
 		return "1" if logvars.size == 0
 		all_num = true
 		@terms.each {|term| all_num = false if term.psize.to_i.to_s != term.psize}
-		if(constraints.size == 0)
+		if(num_distinct_lvs < 2)
 			return eval(@terms.inject(""){|result, term| result += term.psize + "*"}.chop).to_s if all_num
 			return (@terms.inject("(") {|result, term| result += ("(" + term.psize + ")*")}.chop + ")")
-		elsif(num_distinct_lvs == 2 and constraints.size == 1)
-			return eval(logvars[0].psize + "*(" + logvars[1].psize + "-1)").to_s if all_num
-			return "(" + logvars[0].psize + ")*(" + logvars[1].psize + "-1)"
+		# elsif(num_distinct_lvs == 2 and constraints.size == 1)
+		# 	return eval(logvars[0].psize + "*(" + logvars[1].psize + "-1)").to_s if all_num
+		# 	return "(" + logvars[0].psize + ")*(" + logvars[1].psize + "-1)"
 		else
-			Helper.error("The code currently does not support this model. See PRV.psize")
+			size = ""
+			lv_hash = Hash.new
+			@terms.each do |term|
+				if lv_hash[term.type].nil?
+					size += "(" + term.psize + ")*"
+					lv_hash[term.type] = 1
+				else
+					size += "(" + term.psize + "-#{lv_hash[term.type]})*"
+					lv_hash[term.type] += 1
+				end
+			end
+			# @terms.each_with_index {|term, i| size += "(" + term.psize + "-#{i})*"}
+			return eval(size.chop) if all_num
+			return "(" + size.chop + ")"
 		end
 	end
 
@@ -79,6 +97,20 @@ class PRV
 
 	def replace_all_lvs(old_lv, new_term)
 		@terms.each_with_index  {|term, i| @terms[i] = new_term.duplicate if term.class == LogVar and term.is_same_as(old_lv) and term.name == old_lv.name}
+	end
+
+	def replace_all_lvs_with_type(old_type, new_term)
+		@terms.each_with_index {|term, i| @terms[i] = new_term.duplicate if term.class == LogVar and term.type == old_type}
+	end
+
+	def replace_all_lvs_and_prv_names(old_lv, new_term)
+		@terms.each_with_index do |term, i|
+			if term.class == LogVar and term.is_same_as(old_lv) and term.name == old_lv.name
+				@terms[i] = new_term.duplicate
+				@name_addendum[i] = "c#{i}" + new_term.name
+				# @full_name += "_c#{i}_#{new_term.name}"
+			end
+		end
 	end
 
 	def remove_same_lvs

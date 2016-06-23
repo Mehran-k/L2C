@@ -11,6 +11,7 @@ class BranchingOrder
 			min_nested_loops = 9999
 			order = []
 			(@cnf.get_all_prv_names).permutation.each do |new_order|
+				puts "Calculating num_nested_loops for #{new_order.join(',')}"
 				num_nested_loops = num_nested_loops(@cnf, new_order, min_nested_loops, 0)
 				if  num_nested_loops < min_nested_loops
 					min_nested_loops = num_nested_loops
@@ -26,6 +27,7 @@ class BranchingOrder
 				r2 = rand(order.size-1) + 1
 				r2 = rand(order.size-1) + 1 while(r2 == r1)
 				new_order[r1], new_order[r2] = new_order[r2], new_order[r1]
+				puts "Calculating num_nested_loops for #{new_order.join(',')}"
 				num_nested_loops = num_nested_loops(@cnf, new_order, min_nested_loops, 0)
 				if  num_nested_loops < min_nested_loops
 					min_nested_loops = num_nested_loops
@@ -75,9 +77,11 @@ class BranchingOrder
 	end
 
 	def num_nested_loops(cnf, order, best_global, num_local_loops)
-		cnf_dup = cnf.dup
+		# puts cnf.my2string
+		# puts "!~~~~~~~~~~~!"
+		cnf_dup = cnf.duplicate
 		return 0 if cnf_dup.clauses.size == 0
-		cnf_dup.clauses.select!{|clause| not clause.can_be_evaluated}
+		cnf_dup.clauses.select!{|clause| not clause.can_be_evaluated?}
 
 		unit_clauses = cnf_dup.unit_clauses
 		if not unit_clauses.empty?
@@ -93,19 +97,19 @@ class BranchingOrder
 		pop_size, decomposer_lv_pos, prv_pos = cnf_dup.get_decomposer_lv
 		if not decomposer_lv_pos.nil?
 			cnf_dup.decompose(decomposer_lv_pos, prv_pos)
-			cnf_dup.shatter
 			cnf_dup.replace_no_lv_prvs_with_rvs
 			return num_nested_loops(cnf_dup, order, best_global, num_local_loops) 
 		end
 
 		if cnf_dup.fo2
 			cnf_dup.replace_individuals_for_fo2
-			cnf_dup.shatter
+			# cnf_dup.remove_all_lv_neq_constant_constraints(false)
 			cnf_dup.replace_no_lv_prvs_with_rvs
 			return num_nested_loops(cnf_dup, order, best_global, num_local_loops)
 		end
 
 		branch_prv = cnf_dup.next_prv(order)
+		# puts "Branching on: " + branch_prv.my2string
 		if  branch_prv.num_lvs == 0
 			cnf_dup1 = cnf_dup.duplicate
 			cnf_dup1.update(branch_prv.full_name, "true")
@@ -117,7 +121,6 @@ class BranchingOrder
 			return [nnl1, nnl2].max
 		elsif branch_prv.num_lvs == 1
 			return 1000 if (1 + num_local_loops) >= best_global
-			branch_lv = branch_prv.first_lv
 			cnf_dup.branch(branch_prv, "0")
 			cnf_dup.apply_branch_observation(branch_prv)
 			return 1 + num_nested_loops(cnf_dup, order, best_global, 1 + num_local_loops)
