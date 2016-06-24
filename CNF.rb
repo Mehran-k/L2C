@@ -19,6 +19,10 @@ class CNF
 		return prvs.values
 	end
 
+	def has_prv_with_core_name?(core_name)
+		get_all_prvs.map{|prv| prv.core_name}.include? core_name
+	end
+
 	def literals
 		@clauses.map{|clause| clause.literals}.flatten
 	end
@@ -410,6 +414,7 @@ class CNF
 
 	def next_prv(order)
 		order.each {|prv_name| @clauses.each {|clause| clause.literals.each {|literal| return literal.prv if literal.prv.core_name == prv_name}}}
+		return nil
 	end
 
 	def has_no_lvs

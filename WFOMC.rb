@@ -303,7 +303,7 @@ class WFOMC
 				end
 
 				str << "else{\n"
-				str << loop_string(array_counter, branch_prv, branch_lv, cnf_dup, cache)
+				str << loop_string(array_counter, branch_prv, branch_lv, cnf_dup, cache, branch_lv_num_psize)
 				str << "}\n"
 			end
 			return str

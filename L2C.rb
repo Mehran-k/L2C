@@ -15,7 +15,7 @@ require './branchingorder'
 
 #parameters
 order_heuristic = "MNL"
-num_sls = 25
+num_sls = 50
 max_pop_size = 100
 
 #arguments
@@ -68,7 +68,8 @@ puts "~~~~~~~~~~~~~~~~"
 puts "Finding the branching order"
 bo = BranchingOrder.new(cnf)
 order = bo.min_nested_loop_order(num_sls)
-order = ["S", "C", "Friend", "Friend_r1", "F", "F_r1", "G"]
+puts order.inspect
+# order = ["S", "C", "Friend", "Friend_r1", "F", "F_r1", "G"]
 puts "The order has been decided: #{order.join(',')}"
 weight_function = cnf.adjust_weights(parser.weights)
 wfomc = WFOMC.new(weight_function, max_pop_size)
