@@ -338,13 +338,18 @@ class CNF
 	def replace_individuals_for_fo2
 		const1 = Constant.new("FO2_1")
 		const2 = Constant.new("FO2_2")
+		new_clauses = Array.new
 		@clauses.each do |clause|
-			lv1 = clause.logvars[0]
-			lv2 = clause.logvars[1]
+			lv1 = clause.get_all_distinct_lvs[0]
+			lv2 = clause.get_all_distinct_lvs[1]
+			clause_dup = clause.duplicate
 			clause.replace_all_lvs(lv1, const1)
 			clause.replace_all_lvs(lv2, const2)
+			clause_dup.replace_all_lvs(lv2, const1)
+			clause_dup.replace_all_lvs(lv1, const2)
+			new_clauses << clause_dup
 		end
-		return true
+		@clauses += new_clauses
 	end
 
 	def replace_no_lv_prvs_with_rvs

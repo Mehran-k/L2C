@@ -1,0 +1,30 @@
+domain people 6 {Mehran, David, Alex, Alice, Angelina, Brad}
+domain movies 5 {Titanic, Her, Zootopia, Hangover, GodFather}
+
+predicate Old(people)
+predicate Female(people)
+predicate Friend(people, people)
+predicate Comedy(movies)
+predicate Romance(people)
+predicate Likes(people, movies)
+predicate AUX1(people, people) 2.71828182 1
+predicate AUX2(people, movies) 3.32012 1
+predicate AUX3(people, movies) 3.32012 1
+
+// Old(x) ^ Friend(x, y) => Old(y)
+!AUX1(x, y) v !Old(x) v !Friend(x, y) v Old(y)
+Old(x) v AUX1(x, y)
+Friend(x, y) v AUX1(x, y)
+!Old(y) v AUX1(x, y)
+
+// Old(x) ^ Likes(x, m) => Comedy(m)
+!AUX2(x, m) v !Old(x) v !Likes(x, m) v Comedy(y)
+Old(x) v AUX2(x, m)
+Likes(x, m) v AUX2(x, m)
+!Comedy(m) v AUX2(x, m)
+
+// Femaile(x) ^ Likes(x, m) => Romance(m)
+!AUX3(x, m) v !Female(x) v !Likes(x, m) v Romance(y)
+Female(x) v AUX3(x, m)
+Likes(x, m) v AUX3(x, m)
+!Romance(m) v AUX3(x, m)

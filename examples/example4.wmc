@@ -1,0 +1,6 @@
+domain people 1 {Mehran}
+
+predicate S(people)
+predicate T(people)
+
+S(x) v T(y), x != y

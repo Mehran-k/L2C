@@ -1,0 +1,6 @@
+domain people 6 {Mehran, David, Alex, Tom, Ben, Ted}
+
+predicate S(people)
+predicate T(people)
+
+S(x) v T(y), x != y

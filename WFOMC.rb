@@ -132,7 +132,7 @@ class WFOMC
 		unit_prop_string = ""
 		unit_clauses = cnf_dup_loop.unit_clauses.select{|clause| clause.constraints.empty?}
 		if  unit_clauses.size > 0
-			unit_prop_string, to_evaluate = cnf_dup_loop.apply_unit_propagation(unit_clauses, @weights)
+			unit_prop_string, to_evaluate2 = cnf_dup_loop.apply_unit_propagation(unit_clauses, @weights)
 			if(unit_prop_string == "false")
 				str << Helper.indent(2) + "else{\n"
 				str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=-2000;\n"
@@ -142,9 +142,7 @@ class WFOMC
 				str << "}\n"
 				return str
 			end
-			to_evaluate2 = cnf_dup_loop.clauses.select{|clause| clause.can_be_evaluated?}
 			cnf_dup_loop.clauses -= to_evaluate2.to_a
-
 			to_evaluate = to_evaluate.to_a + to_evaluate2.to_a
 			to_evaluate = nil if to_evaluate.empty?
 		end
@@ -180,6 +178,9 @@ class WFOMC
 	end
 
 	def compile(cnf, cache)
+
+		# puts cnf.my2string
+		# puts "~~~~~~~~~~"
 
 		# @num_iterate += 1
 		# exit if @num_iterate > 60
@@ -246,13 +247,17 @@ class WFOMC
 		if cnf_dup.fo2
 			# puts "There are only 2lv logvars and the grounding is disconnected"
 			has_neq_constraint = (cnf_dup.clauses[0].constraints.size > 0 ? true : false)
-			psize = cnf_dup.clauses[0].logvars[0].psize
+			psize = cnf_dup.clauses[0].get_all_distinct_lvs[0].psize
 			cnf_dup.replace_individuals_for_fo2
+			cnf_dup.remove_resolved_constraints
+			puts cnf_dup.my2string
 			# cnf_dup.remove_all_lv_neq_constant_constraints(false)
 			cnf_dup.replace_no_lv_prvs_with_rvs
 			str = ""
 			compile(cnf_dup, cache).each_line {|line| str += line}
-			str += "v#{save_counter}=v#{save_counter+1}*(#{psize} * (#{psize} - 1) / 2.0);\n"
+			puts "!!!!!!!!"
+			puts str
+			str += "v#{save_counter}=v#{save_counter+1}*(((#{psize})*(#{psize} - 1)) / 2.0);\n"
 			return str + cache.add(cnf, "v#{save_counter}")
 		end
 

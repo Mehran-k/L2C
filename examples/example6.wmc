@@ -1,0 +1,8 @@
+domain people 6 {Mehran, David, Ben, Jack, Jen, Helen}
+
+//predicate Smokes(people)
+predicate Friend(people, people)
+
+//!Smokes(x) v !Friend(x, y) v Smokes(y)
+//Friend(x, x)
+!Friend(x, y) v Friend(y, x)

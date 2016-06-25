@@ -73,15 +73,6 @@ class Clause
 		end
 	end
 
-	# def remove_lv_neq_const(lv, const)
-	# 	@literals.each do |literal|
-	# 		literal.prv.logvars.each_with_index do |prv_lv, i|
-	# 			literal.prv.logvars[i].decrement_psize if prv_lv.is_same_as(lv)	
-	# 		end
-	# 	end
-	# 	@constraints.select!{|constraint| !constraint.is_resolved_after_removing_constant(lv, const)}
-	# end
-
 	def update(prv_name, value) #note that update only drops literals from the clause. It does not (and should not) change L
 		@literals.each do |literal|
 			if  literal.name == prv_name
@@ -141,9 +132,7 @@ class Clause
 
 	def my2string
 		str = "<"
-		if @is_true 
-			str += "True"
-		elsif is_false == 0
+		if is_false == 0
 			str += "False"
 		else
 			str += @literals.map{|lit| lit.my2string}.join("v")

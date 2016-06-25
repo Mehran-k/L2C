@@ -1,0 +1,12 @@
+//This is the friends and smokers example. Smokes(x) ^ Friend(x, y) => Smokes(y)
+
+domain people 5 {Mehran, David, Alice, Bob, Charlie}
+
+predicate Smokes(people)
+predicate Friend(people, people)
+predicate AUX(people, people) 2.71828182 1
+
+!AUX(x, y) v !Smokes(x) v !Friend(x,y) v Smokes(y)
+Smokes(x) v AUX(x, y)
+Friend(x, y) v AUX(x, y)
+!Smokes(y) v AUX(x, y)

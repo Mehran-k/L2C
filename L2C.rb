@@ -44,18 +44,6 @@ if !arguments["-k"].nil?
 	end
 end
 
-# const = Constant.new("Ali")
-# x = LogVar.new("x", Array.new, "5", "people")
-# y = LogVar.new("y", Array.new, "5", "people")
-# s = PRV.new("S", [x])
-# t = PRV.new("T", [y])
-# c = Constraint.new(x, const, "!=")
-# clause1 = Clause.new([s.lit("true"), t.lit("true")], [c])
-# cnf = CNF.new([clause1])
-# puts cnf.my2string
-# cnf.remove_all_lv_neq_constant_constraints
-# puts cnf.my2string
-
 content = File.read(arguments["-f"])
 parser = Parser.new(content)
 parser.produce_cnf
@@ -69,8 +57,6 @@ puts "Finding the branching order"
 bo = BranchingOrder.new(cnf)
 order = bo.min_nested_loop_order(num_sls)
 puts order.inspect
-# order = ["S", "C", "Friend", "Friend_r1", "F", "F_r1", "G"]
-puts "The order has been decided: #{order.join(',')}"
 weight_function = cnf.adjust_weights(parser.weights)
 wfomc = WFOMC.new(weight_function, max_pop_size)
 wfomc.set_order(order)
