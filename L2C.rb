@@ -56,15 +56,13 @@ puts "~~~~~~~~~~~~~~~~"
 puts "Finding the branching order"
 bo = BranchingOrder.new(cnf)
 order = bo.min_nested_loop_order(num_sls)
-puts order.inspect
 weight_function = cnf.adjust_weights(parser.weights)
 wfomc = WFOMC.new(weight_function, max_pop_size)
 wfomc.set_order(order)
-cache = Cache.new
 puts "Starting to compile"
-cpp_core = wfomc.compile(cnf, cache)
-cpp_core = cache.remove_inserts(cpp_core)
+cpp_core = wfomc.compile(cnf)
+cpp_core = wfomc.cache.remove_inserts(cpp_core)
 doubles = wfomc.get_doubles
-queues = cache.queues_declaration
+queues = wfomc.cache.queues_declaration
 cpp_handler = CPPHandler.new(cpp_core, doubles, queues)
 cpp_handler.execute(arguments["-f"].gsub(".wmc", ""), max_pop_size)

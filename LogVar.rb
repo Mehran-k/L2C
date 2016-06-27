@@ -12,6 +12,10 @@ class LogVar
 		return true if (@type == lv.type and @psize == lv.psize) ? true : false
 	end
 
+	def replace_parameters(param, number)
+		psize.gsub!(param, number)
+	end
+
 	def decrement_psize #psize may become negative at runtime
 		if(@psize.to_i.to_s == @psize)
 			@psize = (@psize.to_i - 1).to_s

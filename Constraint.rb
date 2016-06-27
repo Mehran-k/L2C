@@ -51,6 +51,11 @@ class Constraint
 		return true
 	end
 
+	def replace_parameters(param, number)
+		@term1.replace_parameters(param, number) if @term1.class == LogVar
+		@term2.replace_parameters(param, number) if @term2.class == LogVar
+	end
+
 	def is_resolved?
 		if @term1.class == Constant and @term2.class == Constant and !@term1.is_same_as(@term2)
 			return true

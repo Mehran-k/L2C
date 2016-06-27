@@ -113,6 +113,11 @@ class Clause
 		@constraints.each {|constraint| constraint.replace_terms_with_type(old_type, new_term)}
 	end
 
+	def replace_parameters(param, number)
+		@constraints.each {|constraint| constraint.replace_parameters(param, number)}
+		@literals.each {|literal| literal.prv.replace_parameters(param, number)}
+	end
+
 	def replace_all_prvs(prv1, prv2)
 		@literals.each_with_index do |literal, i|
 			@literals[i].prv = prv2.duplicate if literal.prv.unique_identifier == prv1.unique_identifier

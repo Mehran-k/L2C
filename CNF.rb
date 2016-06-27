@@ -36,6 +36,10 @@ class CNF
 		return false
 	end
 
+	def replace_parameters(param, number)
+		@clauses.each {|clause| clause.replace_parameters(param, number)}
+	end
+
 	def unit_clauses
 		@clauses.select{|clause| clause.literals.size == 1}
 	end
@@ -51,6 +55,10 @@ class CNF
 			new_function[literal.prv.core_name] = weight_function[literal.prv.core_name[0..literal.prv.core_name.index("_r")-1]] if !literal.prv.full_name.index("_r").nil?
 		end
 		return new_function
+	end
+
+	def replace_all_lvs_with_type(old_type, new_term)
+		@Clauses.each{|clause| clause.replace_all_lvs_with_type(old_type, new_term)}
 	end
 
 	def remove_pop1_constraints(lv)

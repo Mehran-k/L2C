@@ -23,6 +23,10 @@ class PRV
 		return Literal.new(self, value)
 	end
 
+	def replace_parameters(param, number)
+		@terms.each {|term| term.replace_parameters(param, number) if term.class == LogVar}
+	end
+
 	def num_lvs #returns the number of lvs: F(x,x) has two lvs
 		return @terms.select{|term| term.class == LogVar}.size
 	end
