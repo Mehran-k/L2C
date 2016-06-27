@@ -9,5 +9,5 @@ int main(){
 double logs[MAX+1]; for(int i = 0; i <= MAX; i++) logs[i] = log(i);
 	v1=(0.6931471805*1+0.6931471805*1);
 
-cout << exp(v1) << endl;
+cout << "exp(" << v1 << ")= " << exp(v1) << endl;
 return 0;}

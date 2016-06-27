@@ -15,7 +15,7 @@ require './branchingorder'
 
 #parameters
 order_heuristic = "MNL"
-num_sls = 50
+num_sls = 25
 max_pop_size = 100
 
 #arguments
@@ -60,7 +60,7 @@ weight_function = cnf.adjust_weights(parser.weights)
 wfomc = WFOMC.new(weight_function, max_pop_size)
 wfomc.set_order(order)
 puts "Starting to compile"
-cpp_core = wfomc.compile(cnf)
+cpp_core = wfomc.compile(cnf, true)
 cpp_core = wfomc.cache.remove_inserts(cpp_core)
 doubles = wfomc.get_doubles
 queues = wfomc.cache.queues_declaration

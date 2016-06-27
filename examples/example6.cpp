@@ -13,5 +13,5 @@ v9=sum(0.0+0,0.0+0);
 v8=v9*(6);
 v1=v2+v8;
 
-cout << exp(v1) << endl;
+cout << "exp(" << v1 << ")= " << exp(v1) << endl;
 return 0;}
