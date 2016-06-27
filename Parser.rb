@@ -41,7 +41,7 @@ class Parser
 					neg_weight = 1
 				end
 				@predicates[predicate_name] = domains.map{|d| @domains[d]}
-				@weights[predicate_name] = [Math.log(pos_weight).round(6), Math.log(neg_weight).round(6)]
+				@weights[predicate_name] = [Math.log(pos_weight).round(8), Math.log(neg_weight).round(8)]
 
 			elsif line.gsub(" ", "").size == 0 or line.gsub(" ", "").start_with? "//"
 				#this is an empty or a comment line

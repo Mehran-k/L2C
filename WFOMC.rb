@@ -128,24 +128,25 @@ class WFOMC
 		to_evaluate = cnf_dup_loop.clauses.select{|clause| clause.can_be_evaluated?}
 		cnf_dup_loop.clauses -= to_evaluate
 
-		#~~~~ Unit propagation before going to each case. Note we do unit propagation only on clauses with no constraints because the ones having constraints may be changed during special cases.~~~~#
+		# #~~~~ Unit propagation before going to each case. Note we do unit propagation only on clauses with no constraints because the ones having constraints may be changed during special cases.~~~~#
+		#The 'to_evaluate' contains PRVs that are totally removed in the following unit propagation, thus being counted twice
 		unit_prop_string = ""
-		unit_clauses = cnf_dup_loop.unit_clauses.select{|clause| clause.constraints.empty?}
-		if  unit_clauses.size > 0
-			unit_prop_string, to_evaluate2 = cnf_dup_loop.apply_unit_propagation(unit_clauses, @weights)
-			if(unit_prop_string == "false")
-				str << Helper.indent(2) + "else{\n"
-				str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=-2000;\n"
-				str << Helper.indent(2) + "}\n"
-				str << Helper.indent(1) + "}\n"
-				str << Helper.indent(1) + "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{array_counter}")
-				str << "}\n"
-				return str
-			end
-			cnf_dup_loop.clauses -= to_evaluate2.to_a
-			to_evaluate = to_evaluate.to_a + to_evaluate2.to_a
-			to_evaluate = nil if to_evaluate.empty?
-		end
+		# unit_clauses = cnf_dup_loop.unit_clauses.select{|clause| clause.constraints.empty?}
+		# if  unit_clauses.size > 0
+		# 	unit_prop_string, to_evaluate2 = cnf_dup_loop.apply_unit_propagation(unit_clauses, @weights)
+		# 	if(unit_prop_string == "false")
+		# 		str << Helper.indent(2) + "else{\n"
+		# 		str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=-2000;\n"
+		# 		str << Helper.indent(2) + "}\n"
+		# 		str << Helper.indent(1) + "}\n"
+		# 		str << Helper.indent(1) + "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});" + "\n" + cache.add(cnf, "v#{array_counter}")
+		# 		str << "}\n"
+		# 		return str
+		# 	end
+		# 	cnf_dup_loop.clauses -= to_evaluate2.to_a
+		# 	to_evaluate = to_evaluate.to_a + to_evaluate2.to_a
+		# 	to_evaluate = nil if to_evaluate.empty?
+		# end
 
 		if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "1") and cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2") and (branch_lv_num_psize == 2 or branch_lv_num_psize.nil?))
 			save_counter = @counter
@@ -195,16 +196,17 @@ class WFOMC
 			return ""
 		end
 
-		cache_value = cache.get(cnf_dup)
-		if not cache_value.nil?
-			q_number = cache_value[0..cache_value.index(":")-1]
-			return "v#{save_counter}=q#{q_number}.front(); q#{q_number}.pop();\n" 
-		end
-		return "v#{save_counter}=cache.at(\"#{cache_value}\");\n" if not cache_value.nil?
+		# cache_value = cache.get(cnf_dup)
+		# if not cache_value.nil?
+		# 	q_number = cache_value[0..cache_value.index(":")-1]
+		# 	return "v#{save_counter}=q#{q_number}.front(); q#{q_number}.pop();\n" 
+		# end
+		# return "v#{save_counter}=cache.at(\"#{cache_value}\");\n" if not cache_value.nil?
 
 		#unit propagation
 		unit_clauses = cnf_dup.unit_clauses
 		if  unit_clauses.size > 0
+			# puts "Applying unit propagation"
 			unit_prop_string, to_evaluate = cnf_dup.apply_unit_propagation(unit_clauses, @weights)
 			return "v#{save_counter}=-2000;\n" if(unit_prop_string == "false")
 			
@@ -224,6 +226,7 @@ class WFOMC
 
 		cc = cnf_dup.connected_components
 		if  cc.size != 1
+			# puts "The network is disconnected"
 			product = ""#this is the product of all connected components
 			cc.each_with_index do |cc_cnf, i|
 				product += "v#{@counter}+"
@@ -234,6 +237,7 @@ class WFOMC
 
 		pop_size, decomposer_lv_pos, prv_pos = cnf_dup.get_decomposer_lv
 		if not decomposer_lv_pos.nil?
+			# puts "The grounding is disconnected"
 			decomposer_lv_type = cnf_dup.clauses[0].literals[0].prv.terms[decomposer_lv_pos[prv_pos[cnf_dup.clauses[0].literals[0].name]]-1].type
 			cnf_dup.decompose(decomposer_lv_pos, prv_pos)
 			# cnf_dup.remove_all_lv_neq_constant_constraints(false)
@@ -250,13 +254,10 @@ class WFOMC
 			psize = cnf_dup.clauses[0].get_all_distinct_lvs[0].psize
 			cnf_dup.replace_individuals_for_fo2
 			cnf_dup.remove_resolved_constraints
-			puts cnf_dup.my2string
 			# cnf_dup.remove_all_lv_neq_constant_constraints(false)
 			cnf_dup.replace_no_lv_prvs_with_rvs
 			str = ""
 			compile(cnf_dup, cache).each_line {|line| str += line}
-			puts "!!!!!!!!"
-			puts str
 			str += "v#{save_counter}=v#{save_counter+1}*(((#{psize})*(#{psize} - 1)) / 2.0);\n"
 			return str + cache.add(cnf, "v#{save_counter}")
 		end

@@ -56,15 +56,15 @@ class Cache
 				used_count = c_prog.scan(/#{q_number}.front()/).count
 				new_push = ""
 				used_count.times.each do |i|
-					new_push += line.gsub("#{q_number}", "#{q_number}#{i+1}")
-					@queues << "#{q_number}#{i+1}"
+					new_push += line.gsub("#{q_number}", "#{q_number}_#{i+1}")
+					@queues |= ["#{q_number}_#{i+1}"]
 				end
 				c_prog.gsub(line, "")
 				new_prog += new_push
 			elsif line.include? ".front("
 				q_number = line[line.index("q")..line.index(".")-1]
 				q_usage[q_number] = q_usage[q_number].to_i + 1
-				new_prog += line.gsub("#{q_number}.front(); #{q_number}.pop();", "#{q_number}#{q_usage[q_number]}.front(); #{q_number}#{q_usage[q_number]}.pop();")
+				new_prog += line.gsub("#{q_number}.front(); #{q_number}.pop();", "#{q_number}_#{q_usage[q_number]}.front(); #{q_number}_#{q_usage[q_number]}.pop();")
 			else
 				new_prog += line
 			end

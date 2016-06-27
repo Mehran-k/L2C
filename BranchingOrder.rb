@@ -1,10 +1,11 @@
 class BranchingOrder
-	attr_accessor :cnf, :order_cache
+	attr_accessor :cnf, :order_cache, :counter
 
 	def initialize(cnf)
 		@cnf = cnf.duplicate
 		@cnf.ignore_all_constraints
 		@order_cache = Hash.new
+		@counter = 0
 	end
 
 	# def branch_and_bound_order
@@ -188,6 +189,12 @@ class BranchingOrder
 	def num_nested_loops(cnf, order, best_global, num_local_loops)
 		# puts cnf.my2string
 		# puts "!~~~~~~~~~~~!"
+		# puts order.join(", ")
+		# puts "!!!!!!!!~~~~~~~!!!!!!!!"
+
+		# @counter += 1
+		# exit if @counter > 5
+
 		cnf_dup = cnf.duplicate
 		return 0 if cnf_dup.clauses.size == 0
 		cnf_dup.clauses.select!{|clause| not clause.can_be_evaluated?}
@@ -201,16 +208,21 @@ class BranchingOrder
 		end
 
 		cc = cnf_dup.connected_components
-		return cc.inject(0){|result, cc_cnf| result = [result, num_nested_loops(cc_cnf, order, best_global, num_local_loops)].max} if cc.size != 1
+		if cc.size != 1
+			# puts "The network is disconnected"
+			return cc.inject(0){|result, cc_cnf| result = [result, num_nested_loops(cc_cnf, order, best_global, num_local_loops)].max} 
+		end
 		
 		pop_size, decomposer_lv_pos, prv_pos = cnf_dup.get_decomposer_lv
 		if not decomposer_lv_pos.nil?
+			# puts "The grounding is disconnected"
 			cnf_dup.decompose(decomposer_lv_pos, prv_pos)
 			cnf_dup.replace_no_lv_prvs_with_rvs
 			return num_nested_loops(cnf_dup, order, best_global, num_local_loops) 
 		end
 
 		if cnf_dup.fo2
+			# puts "FO2"
 			cnf_dup.replace_individuals_for_fo2
 			# cnf_dup.remove_all_lv_neq_constant_constraints(false)
 			cnf_dup.replace_no_lv_prvs_with_rvs
@@ -218,6 +230,7 @@ class BranchingOrder
 		end
 
 		branch_prv = cnf_dup.next_prv(order)
+		# puts "Branching on #{branch_prv.my2string}"
 		# puts "Branching on: " + branch_prv.my2string
 		if  branch_prv.num_lvs == 0
 			cnf_dup1 = cnf_dup.duplicate
