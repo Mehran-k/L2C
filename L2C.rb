@@ -16,7 +16,6 @@ require './branchingorder'
 #parameters
 order_heuristic = "MNL"
 num_sls = 25
-max_pop_size = 100
 
 #arguments
 arguments = Hash.new
@@ -57,7 +56,7 @@ puts "Finding the branching order"
 bo = BranchingOrder.new(cnf)
 order = bo.min_nested_loop_order(num_sls)
 weight_function = cnf.adjust_weights(parser.weights)
-wfomc = WFOMC.new(weight_function, max_pop_size)
+wfomc = WFOMC.new(weight_function)
 wfomc.set_order(order)
 puts "Starting to compile"
 cpp_core = wfomc.compile(cnf, true)
@@ -65,4 +64,4 @@ cpp_core = wfomc.cache.remove_inserts(cpp_core)
 doubles = wfomc.get_doubles
 queues = wfomc.cache.queues_declaration
 cpp_handler = CPPHandler.new(cpp_core, doubles, queues)
-cpp_handler.execute(arguments["-f"].gsub(".wmc", ""), max_pop_size)
+cpp_handler.execute(arguments["-f"].gsub(".wmc", ""), cnf.max_pop_size)

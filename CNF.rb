@@ -19,6 +19,18 @@ class CNF
 		return prvs.values
 	end
 
+	def max_pop_size
+		max = 1
+		@clauses.each do |clause|
+			clause.literals.each do |literal|
+				literal.prv.logvars.each do |lv|
+					max = [max, lv.psize.to_i].max
+				end
+			end
+		end
+		return max
+	end
+
 	def has_prv_with_core_name?(core_name)
 		get_all_prvs.map{|prv| prv.core_name}.include? core_name
 	end

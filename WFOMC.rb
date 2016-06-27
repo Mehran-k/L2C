@@ -1,14 +1,13 @@
 class WFOMC
-	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent, :doubles, :max_pop_size, :num_iterate, :new_line, :cache
+	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent, :doubles, :num_iterate, :new_line, :cache
 
-	def initialize(weights, max_pop_size)
+	def initialize(weights)
 		@cache = Cache.new
 		@weights = weights
 		@counter = 1
 		@noeffect_vars = Array.new
 		@indent = "    "
 		@doubles = Array.new
-		@max_pop_size = max_pop_size
 		@num_iterate = 0
 		@new_line = "\n"
 	end
