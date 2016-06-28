@@ -70,7 +70,7 @@ class BranchingOrder
 		min_size = 999999999
 		if to_elim_prv.nil?
 			parfactors.keys.each do |prv_name|
-				prv_cfbf = parfactors[prv_name].inject(1){|result, neighbor| result *= (prv_sizes[neighbor][1] + 1)}
+				prv_cfbf = parfactors[prv_name].inject(0){|result, neighbor| result += Math.log(prv_sizes[neighbor][1] + 1)}
 				if  prv_cfbf < min_size or (prv_cfbf == min_size and prv_sizes[prv_name][1] > prv_sizes[to_elim_prv][1])
 					to_elim_prv = prv_name
 					min_size = prv_cfbf
