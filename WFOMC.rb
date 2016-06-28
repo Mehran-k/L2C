@@ -102,21 +102,26 @@ class WFOMC
 	def branching_for_11(cnf, branch_prv, array_counter, loop_iterator, to_evaluate, save_counter, branch_lv, first_is_1, second_is_1, with_cache)
 		str = ""
 		cnf_dup_loop_11 = cnf.duplicate
+		to_evaluate2 = Array.new
+		#Note: to_evaluate must be determined before replacing the logvars with constants. Otherwise, literals such as F(const, const) are generated even though there is a x != y constraint
 		if first_is_1
 			cnf_dup_loop_11.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "1")} 
+			to_evaluate2 = cnf_dup_loop_11.clauses.select{|clause| clause.can_be_evaluated?}
+			cnf_dup_loop_11.clauses -= to_evaluate2
 			constant = Constant.new(branch_lv.type.upcase + "1" + "_P1")
 			cnf_dup_loop_11.replace_all_lvs_with_type(branch_lv.type + "1", constant)
 			cnf_dup_loop_11.replace_parameters(loop_iterator, "1")
 		end
 		if second_is_1
 			cnf_dup_loop_11.clauses.each {|clause| clause.is_true = true if clause.has_lv_neq_lv_constraint_with_type?(branch_lv.type + "2")} 
+			to_evaluate2 = cnf_dup_loop_11.clauses.select{|clause| clause.can_be_evaluated?}
+			cnf_dup_loop_11.clauses -= to_evaluate2
 			constant = Constant.new(branch_lv.type.upcase + "2" + "_P1")
 			cnf_dup_loop_11.replace_all_lvs_with_type(branch_lv.type + "2", constant)
 			cnf_dup_loop_11.replace_parameters(branch_lv.psize + "-" + loop_iterator, "1")
 			cnf_dup_loop_11.replace_parameters(loop_iterator, (Helper.num_value(branch_lv.psize + "-1").to_s)) if(not Helper.num_value(branch_lv.psize + "-1").nil?)			
 		end
-		to_evaluate2 = cnf_dup_loop_11.clauses.select{|clause| clause.can_be_evaluated?}
-		cnf_dup_loop_11.clauses -= to_evaluate2
+
 		str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, cnf_dup_loop_11, to_evaluate + to_evaluate2, save_counter, branch_lv, with_cache)
 		return str
 	end
@@ -202,13 +207,13 @@ class WFOMC
 			return ""
 		end
 
-		if(with_cache)
-			cache_value = @cache.get(cnf_dup)
-			if not cache_value.nil?
-				q_number = cache_value[0..cache_value.index(":")-1]
-				return "v#{save_counter}=q#{q_number}.front(); q#{q_number}.pop();\n" 
-			end
-		end
+		# if(with_cache)
+		# 	cache_value = @cache.get(cnf_dup)
+		# 	if not cache_value.nil?
+		# 		q_number = cache_value[0..cache_value.index(":")-1]
+		# 		return "v#{save_counter}=q#{q_number}.front(); q#{q_number}.pop();\n" 
+		# 	end
+		# end
 
 		#unit propagation
 		unit_clauses = cnf_dup.unit_clauses

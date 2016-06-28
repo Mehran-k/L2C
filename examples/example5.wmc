@@ -11,24 +11,24 @@ predicate AUX1(people, people) 2.71828182 1
 predicate AUX2(people, movies) 3.32011692 1
 predicate AUX3(people, movies) 3.32012692 1
 
-//!Old(x) v !Friend(x, y) v Old(y)
-//!Old(x) v !Likes(x, m) v Comedy(m)
-//!Female(x) v !Likes(x, m) v Romance(m)
-
 // Old(x) ^ Friend(x, y) => Old(y)
+//!Old(x) v !Friend(x, y) v Old(y)
 !AUX1(x, y) v !Old(x) v !Friend(x, y) v Old(y)
 Old(x) v AUX1(x, y)
 Friend(x, y) v AUX1(x, y)
 !Old(y) v AUX1(x, y)
 
 // Old(x) ^ Likes(x, m) => Comedy(m)
+//!Old(x) v !Likes(x, m) v Comedy(m)
 !AUX2(x, m) v !Old(x) v !Likes(x, m) v Comedy(m)
 Old(x) v AUX2(x, m)
 Likes(x, m) v AUX2(x, m)
 !Comedy(m) v AUX2(x, m)
 
 // Female(x) ^ Likes(x, m) => Romance(m)
+//!Female(x) v !Likes(x, m) v Romance(m)
 !AUX3(x, m) v !Female(x) v !Likes(x, m) v Romance(m)
 Female(x) v AUX3(x, m)
 Likes(x, m) v AUX3(x, m)
 !Romance(m) v AUX3(x, m)
+
