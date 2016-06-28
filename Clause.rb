@@ -13,11 +13,7 @@ class Clause
 
 	def num_distinct_lvs
 		lv_hash = Hash.new
-		@literals.each do |literal|
-			literal.prv.logvars.each do |lv|
-				lv_hash[lv.name] = "true"
-			end
-		end
+		@literals.each {|literal| literal.prv.logvars.each {|lv| lv_hash[lv.name] = "true"}}
 		return lv_hash.keys.size
 	end
 
@@ -66,11 +62,7 @@ class Clause
 	end
 
 	def decrement_lv_size(lv)
-		@literals.each do |literal|
-			literal.prv.logvars.each_with_index do |prv_lv, i|
-				literal.prv.logvars[i].decrement_psize if prv_lv.is_same_as(lv)	
-			end
-		end
+		@literals.each {|literal| literal.prv.logvars.each_with_index {|prv_lv, i| literal.prv.logvars[i].decrement_psize if prv_lv.is_same_as(lv)}}
 	end
 
 	def update(prv_name, value) #note that update only drops literals from the clause. It does not (and should not) change L
@@ -119,9 +111,7 @@ class Clause
 	end
 
 	def replace_all_prvs(prv1, prv2)
-		@literals.each_with_index do |literal, i|
-			@literals[i].prv = prv2.duplicate if literal.prv.unique_identifier == prv1.unique_identifier
-		end
+		@literals.each_with_index {|literal, i| @literals[i].prv = prv2.duplicate if literal.prv.unique_identifier == prv1.unique_identifier}
 	end
 
 	def add_to_prvs_name_addendum(lv, str) #keep the indexes and update at the last

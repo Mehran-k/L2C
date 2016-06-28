@@ -12,19 +12,19 @@ class BranchingOrder
 		all_prvs = @cnf.get_all_prvs
 		no_lvs = all_prvs.select{|prv| prv.logvars.size == 0}
 		all_prvs -= no_lvs
-		no_lvs.map!{|prv| prv.core_name}
+		no_lvs = no_lvs.map{|prv| prv.core_name}
 
 		aux_prvs = all_prvs.select{|prv| prv.core_name.start_with? "AUX"}
 		all_prvs -= aux_prvs
-		aux_prvs.map!{|prv| prv.core_name}
+		aux_prvs = aux_prvs.map{|prv| prv.core_name}
 
 		morethan_one_lvs = all_prvs.select{|prv| prv.logvars.size > 1}
 		all_prvs -= morethan_one_lvs
-		morethan_one_lvs.map!{|prv| prv.core_name}
+		morethan_one_lvs = morethan_one_lvs.map{|prv| prv.core_name}
 
 		removed_double_rvs = all_prvs.select{|prv| not prv.core_name.index("_r").nil?}
 		all_prvs -= removed_double_rvs
-		removed_double_rvs.map!{|prv| prv.core_name}
+		removed_double_rvs = removed_double_rvs.map{|prv| prv.core_name}
 
 		prvs_other = all_prvs.map{|prv| prv.core_name}
 
@@ -132,6 +132,12 @@ class BranchingOrder
 		end
 
 		branch_prv = cnf_dup.next_prv(order)
+		if branch_prv.nil?
+			puts "~~~~~~~~~"
+			puts cnf_dup.my2string
+			puts order.join(", ")
+		end
+
 		if  branch_prv.num_lvs == 0
 			cnf_dup1 = cnf_dup.duplicate
 			cnf_dup1.update(branch_prv.full_name, "true")

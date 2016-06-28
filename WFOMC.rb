@@ -80,7 +80,6 @@ class WFOMC
 		str = ""
 		cnf_dup = cnf.duplicate
 		clause = Clause.new([branch_prv.lit((boundary == "0" ? "false" : "true"))], Array.new)
-		
 		cnf_dup.clauses << clause
 
 		compile(cnf_dup, false).each_line {|line| str << Helper.indent(3) + line}

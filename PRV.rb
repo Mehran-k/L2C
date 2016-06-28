@@ -2,16 +2,14 @@ class PRV
 	attr_accessor :core_name, :full_name, :terms, :name_addendum
 
 	def initialize(name, terms)
-		@core_name = name
-		@full_name = name
+		@core_name = name.dup
+		@full_name = name.dup
 		@terms = terms.map{|term| term.duplicate}
 		@name_addendum = Hash.new
 	end
 
 	def confirm_name_addendum
-		@name_addendum.keys.sort.each do |key|
-			@full_name += @name_addendum[key]
-		end
+		@name_addendum.keys.sort.each {|key| @full_name << @name_addendum[key]}
 		@name_addendum = Hash.new
 	end
 
@@ -32,7 +30,7 @@ class PRV
 	end
 
 	def num_distinct_lvs #returns number of lvs with different names: F(x,x) has one distinct lv
-		return @terms.select{|term| term.class == LogVar}.map{|lv| lv.name}.uniq.size
+		return logvars.map{|lv| lv.name}.uniq.size
 	end
 
 	def logvars
@@ -50,11 +48,6 @@ class PRV
 
 	def has_lv_with_type?(type)
 		@terms.each {|term| return true if term.class == LogVar and term.type == type}
-		return false
-	end
-
-	def has_lv_with_name(name)
-		@terms.each{|term| return true if term.class == LogVar and term.name == name}
 		return false
 	end
 
@@ -127,7 +120,7 @@ class PRV
 				prv.full_name += i.to_s
 			end
 		end
-		prv.core_name = prv.full_name
+		prv.core_name = prv.full_name.dup
 		return prv
 	end
 

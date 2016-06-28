@@ -47,16 +47,16 @@ content = File.read(arguments["-f"])
 parser = Parser.new(content)
 parser.produce_cnf
 cnf = CNF.new(parser.formulae)
-cnf.remove_all_lv_neq_constant_constraints(true)
+# cnf.remove_all_lv_neq_constant_constraints(true)
 cnf.preemptive_shatter
 puts "Initial theory after shattering:"
-puts cnf.my2string
+puts cnf.my2string + "\n"
 puts "Finding the branching order"
 t_start = Time.now
 bo = BranchingOrder.new(cnf)
 order = bo.min_nested_loop_order(num_sls)
 puts "The branching Order is: " + order.join(", ")
-puts "Finding the branching order took " + (Time.now - t_start).to_s + " seconds."
+puts "Finding the branching order took " + (Time.now - t_start).to_s + " seconds.\n\n"
 weight_function = cnf.adjust_weights(parser.weights)
 wfomc = WFOMC.new(weight_function)
 wfomc.set_order(order)
@@ -64,7 +64,7 @@ puts "Starting to compile"
 t_start = Time.now
 cpp_core = wfomc.compile(cnf, true)
 puts "The compilation is done!"
-puts "Compilation took " + (Time.now - t_start).to_s + " seconds."
+puts "Compilation took " + (Time.now - t_start).to_s + " seconds.\n\n"
 cpp_core = wfomc.cache.remove_inserts(cpp_core)
 doubles = wfomc.get_doubles
 queues = wfomc.cache.queues_declaration

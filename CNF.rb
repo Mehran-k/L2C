@@ -21,13 +21,7 @@ class CNF
 
 	def max_pop_size
 		max = 1
-		@clauses.each do |clause|
-			clause.literals.each do |literal|
-				literal.prv.logvars.each do |lv|
-					max = [max, lv.psize.to_i].max
-				end
-			end
-		end
+		@clauses.each {|clause| clause.get_all_distinct_lvs.each {|lv| max = [max, lv.psize.to_i].max}}
 		return max
 	end
 
@@ -37,10 +31,6 @@ class CNF
 
 	def literals
 		@clauses.map{|clause| clause.literals}.flatten
-	end
-
-	def constraints
-		@clauses.map{|clause| clause.constraints}.flatten
 	end
 
 	def has_false_clause
@@ -63,9 +53,7 @@ class CNF
 
 	def adjust_weights(weight_function) #I add _r0-9 to the PRVs having two LVs with same name and remove one of the LVs. These PRVs must have the same weight.
 		new_function = weight_function
-		literals.each do |literal|
-			new_function[literal.prv.core_name] = weight_function[literal.prv.core_name[0..literal.prv.core_name.index("_r")-1]] if !literal.prv.full_name.index("_r").nil?
-		end
+		literals.each {|literal| new_function[literal.prv.core_name] = weight_function[literal.prv.core_name[0..literal.prv.core_name.index("_r")-1]] if !literal.prv.full_name.index("_r").nil?}
 		return new_function
 	end
 
@@ -113,63 +101,6 @@ class CNF
 			end
 		end
 		@clauses.each {|clause| clause.literals.each_with_index {|literal, i| clause.literals[i].prv = literal.prv.remove_same_lvs}}
-	end
-
-	def remove_all_lv_neq_constant_constraints(initial)
-		something_changed = true
-		while(something_changed)
-			something_changed = false
-			constraints.each do |constraint| 
-				if constraint.lv_neq_const?
-					remove_lv_neq_constant_constraint(constraint.term1, constraint.term2, initial) 
-					something_changed = true
-					break
-				end
-			end
-		end
-		@clauses.each {|clause| clause.literals.each {|literal| literal.prv.confirm_name_addendum}}
-	end
-
-	def remove_lv_neq_constant_constraint(lv, constant, initial)
-		new_clauses = Array.new
-		@clauses.each do |clause|
-			clause.decrement_lv_size(lv)
-			constraint_lvs = clause.get_all_distinct_lvs.select{|clause_lv| clause.has_constraint_with_name?(clause_lv, constant, "!=")}
-			other_lvs = clause.get_all_distinct_lvs.select{|clause_lv| not clause.has_constraint_with_name?(clause_lv, constant, "!=")}
-			clause.constraints.select!{|constraint| not constraint.is_resolved? and not constraint.is_resolved_after_removing_constant?(lv, constant)}
-			
-			counter = 1
-			while(counter < 2 ** other_lvs.size)
-				new_clause = clause.duplicate
-				other_lvs.size.times do |i|
-					if(counter & (2 ** i) != 0)
-						new_clause.replace_all_lvs_and_prv_names(other_lvs[i], constant.duplicate)
-					end
-				end
-				new_clauses << new_clause
-				counter += 1
-			end
-
-			if(initial)
-				clause.literals.each do |literal|
-					constraint_lv_names = constraint_lvs.map{|lv| lv.name}
-					literal_constraint_lvs = literal.prv.logvars.select{|lv| constraint_lv_names.include? lv.name}
-					counter = 1
-					while(counter < 2 ** literal_constraint_lvs.size)
-						literal_prv = literal.prv.duplicate
-						literal_constraint_lvs.size.times do |i|
-							if(counter & (2 ** i) != 0)
-								literal_prv.replace_all_lvs_and_prv_names(literal_constraint_lvs[i], constant)
-							end
-						end
-						new_clauses << Clause.new([literal_prv.lit("true"), literal_prv.lit("false")], Array.new)
-						counter += 1
-					end
-				end
-			end
-		end
-		new_clauses.each {|clause| clause.constraints.select!{|constraint| not constraint.is_resolved? and not constraint.is_resolved_after_removing_constant?(lv, constant)}}
-		@clauses += new_clauses.select{|clause| not clause.has_contradictory_constraint?}
 	end
 
 	def replace_prvs_having_same_lv

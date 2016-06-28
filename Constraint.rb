@@ -57,17 +57,13 @@ class Constraint
 	end
 
 	def is_resolved?
-		if @term1.class == Constant and @term2.class == Constant and !@term1.is_same_as(@term2)
-			return true
-		elsif @term1.class == LogVar and @term2.class == LogVar and term1.type != term2.type
-			return true
-		end
+		return true if @term1.class == Constant and @term2.class == Constant and !@term1.is_same_as(@term2)
+		return true	if @term1.class == LogVar and @term2.class == LogVar and term1.type != term2.type
 		return false
 	end
 
 	def contradicts?
-		return true if @term1.name == @term2.name
-		return false
+		return true if (@term1.name == @term2.name) ? true : false
 	end
 
 	def lv_neq_const?
@@ -79,8 +75,7 @@ class Constraint
 	end
 
 	def is_resolved_after_removing_constant?(lv, const)
-		return true if lv_neq_const? and @term1.is_same_as(lv) and @term2.is_same_as(const)
-		return false
+		(lv_neq_const? and @term1.is_same_as(lv) and @term2.is_same_as(const)) ? true : false
 	end
 
 	def my2string
