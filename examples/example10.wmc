@@ -1,3 +1,5 @@
+//A simple example showing how caching works in the C++ programs (see the queues in the generated C++ program)
+
 domain people 10 {Ballack, Lampard, Drogba, Hazard, Ozil, Neuer, Kroos, Messi, Xabi, Fabregas}
 
 predicate P

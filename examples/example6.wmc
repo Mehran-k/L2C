@@ -1,3 +1,5 @@
+//An example where the grounding is disconnected for each pair of individuals
+
 domain people 6 {Mehran, David, Ben, Jack, Jen, Helen}
 
 predicate Smokes(people)

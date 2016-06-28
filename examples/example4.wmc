@@ -1,3 +1,5 @@
+//This is a special case of example 3 where the population size is 1
+
 domain people 1 {Mehran}
 
 predicate S(people)

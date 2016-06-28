@@ -1,3 +1,5 @@
+//This example represents how to use non-equality constraint
+
 domain people 6 {Mehran, David, Alex, Tom, Ben, Ted}
 
 predicate S(people)

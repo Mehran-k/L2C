@@ -1,3 +1,5 @@
+//This is the friends and smokers example plus cancer. Smokes(x) ^ Friend(x, y) => Smokes(y)
+
 domain people 5 {Mehran, David, Alice, Bob, Charlie}
 
 predicate Smokes(people)
