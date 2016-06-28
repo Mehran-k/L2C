@@ -10,21 +10,34 @@ class BranchingOrder
 
 	def min_nested_loop_order(num_iterations)#does hill climbing on the minTableSize order to minimize the number of nested loops
 		all_prvs = @cnf.get_all_prvs
-		no_lvs = all_prvs.select{|prv| prv.logvars.size == 0}.map{|prv| prv.core_name}
-		morethan_one_lvs = all_prvs.select{|prv| prv.logvars.size > 1}.map{|prv| prv.core_name}
-		removed_double_rvs = all_prvs.select{|prv| not prv.core_name.index("_r").nil?}.map{|prv| prv.core_name}
-		prvs_other = all_prvs.map{|prv| prv.core_name} - no_lvs - morethan_one_lvs - removed_double_rvs
+		no_lvs = all_prvs.select{|prv| prv.logvars.size == 0}
+		all_prvs -= no_lvs
+		no_lvs.map!{|prv| prv.core_name}
 
-		return no_lvs + removed_double_rvs + morethan_one_lvs if prvs_other.size == 0
+		aux_prvs = all_prvs.select{|prv| prv.core_name.start_with? "AUX"}
+		all_prvs -= aux_prvs
+		aux_prvs.map!{|prv| prv.core_name}
+
+		morethan_one_lvs = all_prvs.select{|prv| prv.logvars.size > 1}
+		all_prvs -= morethan_one_lvs
+		morethan_one_lvs.map!{|prv| prv.core_name}
+
+		removed_double_rvs = all_prvs.select{|prv| not prv.core_name.index("_r").nil?}
+		all_prvs -= removed_double_rvs
+		removed_double_rvs.map!{|prv| prv.core_name}
+
+		prvs_other = all_prvs.map{|prv| prv.core_name}
+
+		return no_lvs + removed_double_rvs + morethan_one_lvs + aux_prvs if prvs_other.size == 0
 
 		if(num_iterations > (1..prvs_other.size).reduce(:*))
 			min_nested_loops = 9999
 			order = []
 			prvs_other.permutation.each do |new_order|
-				num_nested_loops = num_nested_loops(@cnf, no_lvs + new_order + removed_double_rvs + morethan_one_lvs, min_nested_loops, 0) 
+				num_nested_loops = num_nested_loops(@cnf, no_lvs + new_order + removed_double_rvs + morethan_one_lvs + aux_prvs, min_nested_loops, 0) 
 				if  num_nested_loops < min_nested_loops
 					min_nested_loops = num_nested_loops
-					order = no_lvs + new_order + removed_double_rvs + morethan_one_lvs
+					order = no_lvs + new_order + removed_double_rvs + morethan_one_lvs + aux_prvs
 				end
 			end
 		else

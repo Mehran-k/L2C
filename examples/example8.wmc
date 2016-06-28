@@ -1,38 +1,16 @@
-domain people 4 {ali, reza, taghi, hasan}
-domain movie 3 {Titanic, Her, Zootopia}
+domain people 50 {A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15,A16,A17,A18,A19,A20,A21,A22,A23,A24,A25,A26,A27,A28,A29,A30,A31,A32,A33,A34,A35,A36,A37,A38,A39,A40,A41,A42,A43,A44,A45,A46,A47,A48,A49,A50}
+domain workshop 25 {W1,W2,W3,W4,W5,W6,W7,W8,W9,W10,W11,W12,W13,W14,W15,W16,W17,W18,W19,W20,W21,W22,W23,W24,W25}
 
-predicate P
-predicate R 
-predicate S(people)
-predicate T(people)
-//predicate F(people, people) 2.71828182 1
-//predicate F(people, people)
-//predicate Friend(people, people)
-//predicate C(people)
-//predicate G(people) 1.64872127 1
-//predicate Likes(people, movie)
+predicate series
+predicate hot(workshop)
+predicate attends(people)
+predicate AUX1(people,workshop) 1.349859 1
+predicate AUX2(people) 1.221403 1
 
-//S(x) v F(x, y), x != y
-//!S(x) v !Friend(x, y) v S(y)
-//S(x) v T(y), x != y
-//S(x) v T(y) v F(x, y), x != ali ^ y != reza ^ x != y
-//C(x) v S(x), x != taghi
-!P v S(x) v T(y)
-P v R v S(x) v T(y)
-P v !R v S(x) v T(y)
-//!F(x, y) v !S(x) v !Friend(x,y) v S(y)
-//S(x) v F(x, y)
-//Friend(x, y) v F(x, y)
-//!S(y) v F(x, y)
-//Friend(x, x)
-//Friend(x, y), x != y
-//!G(x) v !S(x) v C(x)
-//S(x) v G(x)
-//!C(x) v G(x)
-//P
-//Friend(x, y), x != ali ^ y != ali
-//Friend(x, y) v F(x, y), x != ali
-//F(x, y) v Friend(x, y), x != ali ^ y != reza
-//S(x) v T(y) v C(z), x != y
-//!C(x) v Likes(x, m)
-//S(x) v T(y), x != y
+
+!AUX1(p, w) v !hot(w) v attends(p)
+hot(w) v AUX1(p, w)
+!attends(p) v AUX1(p, w)
+!AUX2(p) v !attends(p) v series
+attends(p) v AUX2(p)
+!series v AUX2(p)

@@ -1,38 +1,10 @@
-domain people 4 {ali, reza, taghi, hasan}
-domain movie 3 {Titanic, Her, Zootopia}
+domain people 10 {Ballack, Lampard, Drogba, Hazard, Ozil, Neuer, Kroos, Messi, Xabi, Fabregas}
 
 predicate P
 predicate R 
 predicate S(people)
 predicate T(people)
-//predicate F(people, people) 2.71828182 1
-//predicate F(people, people)
-//predicate Friend(people, people)
-//predicate C(people)
-//predicate G(people) 1.64872127 1
-//predicate Likes(people, movie)
 
-//S(x) v F(x, y), x != y
-//!S(x) v !Friend(x, y) v S(y)
-//S(x) v T(y), x != y
-//S(x) v T(y) v F(x, y), x != ali ^ y != reza ^ x != y
-//C(x) v S(x), x != taghi
 !P v S(x) v T(y)
 P v R v S(x) v T(y)
 P v !R v S(x) v T(y)
-//!F(x, y) v !S(x) v !Friend(x,y) v S(y)
-//S(x) v F(x, y)
-//Friend(x, y) v F(x, y)
-//!S(y) v F(x, y)
-//Friend(x, x)
-//Friend(x, y), x != y
-//!G(x) v !S(x) v C(x)
-//S(x) v G(x)
-//!C(x) v G(x)
-//P
-//Friend(x, y), x != ali ^ y != ali
-//Friend(x, y) v F(x, y), x != ali
-//F(x, y) v Friend(x, y), x != ali ^ y != reza
-//S(x) v T(y) v C(z), x != y
-//!C(x) v Likes(x, m)
-//S(x) v T(y), x != y

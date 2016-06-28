@@ -207,13 +207,13 @@ class WFOMC
 			return ""
 		end
 
-		# if(with_cache)
-		# 	cache_value = @cache.get(cnf_dup)
-		# 	if not cache_value.nil?
-		# 		q_number = cache_value[0..cache_value.index(":")-1]
-		# 		return "v#{save_counter}=q#{q_number}.front(); q#{q_number}.pop();\n" 
-		# 	end
-		# end
+		if(with_cache)
+			cache_value = @cache.get(cnf_dup)
+			if not cache_value.nil?
+				q_number = cache_value[0..cache_value.index(":")-1]
+				return "v#{save_counter}=q#{q_number}.front(); q#{q_number}.pop();\n" 
+			end
+		end
 
 		#unit propagation
 		unit_clauses = cnf_dup.unit_clauses
