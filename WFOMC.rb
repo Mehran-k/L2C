@@ -1,15 +1,12 @@
 class WFOMC
-	attr_accessor :weights, :order, :counter, :noeffect_vars, :indent, :doubles, :num_iterate, :new_line, :cache
+	attr_accessor :weights, :order, :counter, :noeffect_vars, :doubles, :cache
 
 	def initialize(weights)
 		@cache = Cache.new
 		@weights = weights
 		@counter = 1
 		@noeffect_vars = Array.new
-		@indent = "    "
 		@doubles = Array.new
-		@num_iterate = 0
-		@new_line = "\n"
 	end
 
 	def set_order(order)
@@ -57,9 +54,6 @@ class WFOMC
 
 	def branching_for_psize_0_string(cnf, branch_lv, array_counter, save_counter, with_cache)
 		str = ""
-		if("#{branch_lv.psize}" == "i_Female2_i")
-			str << "//Here"
-		end
 		cnf_dup_00 = cnf.duplicate
 		cnf_dup_00.remove_clauses_having_logvar(branch_lv)
 		compile(cnf_dup_00, with_cache).each_line {|line| str << Helper.indent(1) + line}
@@ -96,7 +90,6 @@ class WFOMC
 			str.gsub!("v#{save_counter}=", "v#{array_counter}_arr[#{loop_iterator}]=")
 		end
 		return str
-		# str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=" + ((@noeffect_vars.include? "v#{save_counter}") ? "0" : "v#{save_counter}") + ";\n"
 	end
 
 	def branching_for_11(cnf, branch_prv, array_counter, loop_iterator, to_evaluate, save_counter, branch_lv, first_is_1, second_is_1, with_cache)
@@ -132,7 +125,7 @@ class WFOMC
 		save_counter = @counter
 		str << Helper.indent(1) + "double v#{array_counter}_arr[MAX];\n"
 		loop_iterator = "i_" + branch_prv.full_name + "_i"
-		str << Helper.indent(1) + "C_#{loop_iterator}=0;#{@new_line}"
+		str << Helper.indent(1) + "C_#{loop_iterator}=0;\n"
 		@doubles |= ["C_#{loop_iterator}"]
 		str << Helper.indent(1) + "for(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"			
 		
@@ -181,7 +174,7 @@ class WFOMC
 		str << branching_for_boundaries(cnf_dup, loop_iterator, array_counter, save_counter, branch_prv, "n", with_cache)
 		str << Helper.indent(2) + "}\n"
 
-		str << Helper.indent(2) + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];#{@new_line}"
+		str << Helper.indent(2) + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];\n"
 		str << Helper.indent(1) + "}\n"
 		str << Helper.indent(1) + "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});\n"
 		str << @cache.add(cnf, "v#{array_counter}") if with_cache
@@ -190,13 +183,6 @@ class WFOMC
 	end
 
 	def compile(cnf, with_cache)
-
-		# puts cnf.my2string
-		# puts "~~~~~~~~~~"
-
-		# @num_iterate += 1
-		# exit if @num_iterate > 60
-
 		cnf_dup = cnf.duplicate
 		str = ""
 		save_counter = @counter
@@ -215,7 +201,6 @@ class WFOMC
 			end
 		end
 
-		#unit propagation
 		unit_clauses = cnf_dup.unit_clauses
 		if  unit_clauses.size > 0
 			unit_prop_string, to_evaluate = cnf_dup.apply_unit_propagation(unit_clauses, @weights)
@@ -239,7 +224,7 @@ class WFOMC
 			product = ""
 			cc.each_with_index do |cc_cnf, i|
 				product += "v#{@counter}+"
-				compile(cc_cnf, with_cache).each_line {|line| str += line}
+				compile(cc_cnf, with_cache).each_line {|line| str << line}
 			end
 			str << "v#{save_counter}=#{product.chop};\n"
 			str << @cache.add(cnf, "v#{save_counter}") if with_cache
@@ -248,10 +233,8 @@ class WFOMC
 
 		pop_size, decomposer_lv_pos, prv_pos = cnf_dup.get_decomposer_lv
 		if not decomposer_lv_pos.nil?
-			# puts "The grounding is disconnected"
 			decomposer_lv_type = cnf_dup.clauses[0].literals[0].prv.terms[decomposer_lv_pos[prv_pos[cnf_dup.clauses[0].literals[0].name]]-1].type
 			cnf_dup.decompose(decomposer_lv_pos, prv_pos)
-			# cnf_dup.remove_all_lv_neq_constant_constraints(false)
 			cnf_dup.adjust_after_decomposition(decomposer_lv_type)
 			cnf_dup.replace_no_lv_prvs_with_rvs
 			compile(cnf_dup, with_cache).each_line {|line| str << line}
@@ -261,12 +244,10 @@ class WFOMC
 		end
 
 		if cnf_dup.fo2
-			# puts "There are only 2lv logvars and the grounding is disconnected"
 			has_neq_constraint = (cnf_dup.clauses[0].constraints.size > 0 ? true : false)
 			psize = cnf_dup.clauses[0].get_all_distinct_lvs[0].psize
 			cnf_dup.replace_individuals_for_fo2
 			cnf_dup.remove_resolved_constraints
-			# cnf_dup.remove_all_lv_neq_constant_constraints(false)
 			cnf_dup.replace_no_lv_prvs_with_rvs
 			str = ""
 			compile(cnf_dup, with_cache).each_line {|line| str << line}

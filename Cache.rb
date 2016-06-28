@@ -26,7 +26,6 @@ class Cache
 		@counter += 1
 		@memory[identifier] = [0, "\"#{@counter}:#{str_inspect(identifier)}\""] #0 indicates it has not been used yet.
 		return "q#{@counter}.push(#{value});\n"
-		# return "hit_#{@counter}:cache.insert(pair<string, double>(" + @memory[identifier][1] + ",#{value}));\n"
 	end
 
 	def str_inspect(str) #gets a cnf identifier and removes the parts that are not necessary for the c++ program

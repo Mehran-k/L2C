@@ -138,9 +138,9 @@ class Clause
 	def my2string
 		str = "<"
 		if is_false == 0
-			str += "False"
+			str << "False"
 		else
-			str += @literals.map{|lit| lit.my2string}.join("v")
+			str << @literals.map{|lit| lit.my2string}.join("v")
 		end
 		if(@constraints.size != 0)
 			str << "," + @constraints.map{|constraint| constraint.my2string}.join(" ^ ")

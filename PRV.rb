@@ -74,9 +74,6 @@ class PRV
 		if(num_distinct_lvs < 2)
 			return eval(@terms.inject(""){|result, term| result += term.psize + "*"}.chop).to_s if all_num
 			return (@terms.inject("(") {|result, term| result += ("(" + term.psize + ")*")}.chop + ")")
-		# elsif(num_distinct_lvs == 2 and constraints.size == 1)
-		# 	return eval(logvars[0].psize + "*(" + logvars[1].psize + "-1)").to_s if all_num
-		# 	return "(" + logvars[0].psize + ")*(" + logvars[1].psize + "-1)"
 		else
 			size = ""
 			lv_hash = Hash.new
@@ -89,7 +86,6 @@ class PRV
 					lv_hash[term.type] += 1
 				end
 			end
-			# @terms.each_with_index {|term, i| size += "(" + term.psize + "-#{i})*"}
 			return eval(size.chop) if all_num
 			return "(" + size.chop + ")"
 		end
@@ -112,7 +108,6 @@ class PRV
 			if term.class == LogVar and term.is_same_as(old_lv) and term.name == old_lv.name
 				@terms[i] = new_term.duplicate
 				@name_addendum[i] = "c#{i}" + new_term.name
-				# @full_name += "_c#{i}_#{new_term.name}"
 			end
 		end
 	end

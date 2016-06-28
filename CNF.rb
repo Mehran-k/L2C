@@ -85,7 +85,6 @@ class CNF
 	end
 
 	def remove_clauses_having_logvar(lv)
-		# @clauses.each {|clause| clause.is_true = true if clause.has_lv_with_type?(lv.type)}
 		@clauses.select!{|clause| not (clause.has_lv_with_type? (lv.type))}
 	end
 
@@ -173,51 +172,6 @@ class CNF
 		@clauses += new_clauses.select{|clause| not clause.has_contradictory_constraint?}
 	end
 
-	# def shatter #all changes are done together. I may have to do one shattering, then call shatter again. Or even do it a few times until nothing changes
-	# 	constraints.each {|constraint| remove_lv_neq_const(constraint.term1, constraint.term2) if constraint.lv_neq_const}
-	# 	literals.each {|literal| split(literal.prv, 0, 1) if literal.prv.num_lvs == 2 and literal.prv.num_distinct_lvs == 1}
-
-	# 	@clauses.each do |clause|
-	# 		clause.constraints.each do |constraint|
-	# 			if constraint.lv_neq_lv
-	# 				clause.literals.each do |literal|
-	# 					if literal.prv.logvars.size >= 2
-	# 						lv1_index = literal.prv.index_lv_with_name(constraint.term1.name)
-	# 						lv2_index = literal.prv.index_lv_with_name(constraint.term2.name)
-	# 						if lv1_index != -1 and lv2_index != -1 
-	# 							split(literal.prv, lv1_index, lv2_index) 
-	# 						end
-	# 					end
-	# 				end
-	# 			end
-	# 		end
-	# 	end
-	# 	@clauses.each do |clause|
-	# 		clause.literals.each_with_index do |literal, i|
-	# 			clause.literals[i].prv = literal.prv.remove_same_lvs
-	# 		end
-	# 	end
-	# end
-
-	# def remove_lv_neq_const(lv, const)
-	# 	@clauses.each {|clause| clause.remove_lv_neq_const(lv, const)}
-	# end
-
-	# def split(prv, lv1_index, lv2_index)
-	# 	@clauses.each do |clause|
-	# 		clause.literals.each do |literal|
-	# 			if literal.name == prv.full_name
-	# 				if  literal.prv.logvars[lv1_index].name != literal.prv.logvars[lv2_index].name and !clause.has_constraint(literal.prv.logvars[lv1_index], literal.prv.logvars[lv2_index], "!=")
-	# 					clause_dup = clause.duplicate
-	# 					clause.add_constraint(literal.prv.logvars[lv1_index], literal.prv.logvars[lv2_index], "!=")
-	# 					clause_dup.replace_all_lvs(literal.prv.logvars[lv2_index], literal.prv.logvars[lv1_index])
-	# 					@clauses << clause_dup
-	# 				end
-	# 			end
-	# 		end
-	# 	end
-	# end
-
 	def replace_prvs_having_same_lv
 		literals.select{|literal| }.each do |literal|
 			if(literal.prv.num_lvs != literal.prv.num_distinct_lvs)
@@ -231,7 +185,7 @@ class CNF
 		@clauses.each {|clause| clause.replace_all_prvs(prv1, prv2)}
 	end
 
-	def connected_components #"friend(x,x)" and "friend(x,y), x!= y" are also disconnected. I should add this.
+	def connected_components
 		return [] if @clauses.empty?
 		cnf_dup = self.duplicate
 		cc = Array.new
@@ -322,30 +276,6 @@ class CNF
 	def replace_all_lvs_with_type(old_type, new_term)
 		@clauses.each {|clause| clause.replace_all_lvs_with_type(old_type, new_term)}
 	end
-
-	# def ground(logvar)
-	# 	something_changed = true
-	# 	while something_changed
-	# 		something_changed = false
-	# 		@clauses.each do |clause|
-	# 			clause.literals.each do |literal|
-	# 				lit_lv = literal.prv.first_lv_with_type(logvar.type)
-	# 				if  not lit_lv.nil?
-	# 					something_changed = true
-	# 					(1..lit_lv.num_psize).each do |i|
-	# 						new_const = Constant.new(logvar.name.upcase + i.to_s)
-	# 						new_clause = clause.duplicate
-	# 						new_clause.change_prv_names(lit_lv, i.to_s)
-	# 						new_clause.replace_all_lvs(lit_lv, new_const)
-	# 						@clauses << new_clause
-	# 					end
-	# 					@clauses -= [clause]
-	# 					break
-	# 				end
-	# 			end
-	# 		end
-	# 	end
-	# end
 
 	def fo2
 		@clauses.each do |clause|
@@ -478,7 +408,6 @@ class CNF
 		unit_weights = ""
 		unit_clauses.each do |unit_clause|
 			if(unit_clause.literals.size > 0) #previous unit clauses may make others disapper
-				# puts "Unit Propagation on #{unit_clause.literals[0].prv.my2string}"
 				literal = unit_clause.literals[0]
 				value = literal.value
 				if(value == "true" and weights[literal.prv.core_name][0] != 0.0)

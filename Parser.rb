@@ -87,13 +87,7 @@ class Parser
 				if(!constraints_string.nil?)
 					constraints_string.each do |constraint|
 						spl = constraint.split("!=")
-						if(!all_logvars[spl[0]].nil? and !all_logvars[spl[1]].nil?)
-							constraints << Constraint.new(all_logvars[spl[0]], all_logvars[spl[1]], "!=")
-						elsif(!all_logvars[spl[0]].nil?)
-							constraints << Constraint.new(all_logvars[spl[0]], Constant.new(spl[1]), "!=")
-						else
-							constraints << Constraint.new(all_logvars[spl[1]], Constant.new(spl[0]), "!=")
-						end
+						constraints << Constraint.new(all_logvars[spl[0]], all_logvars[spl[1]], "!=")
 					end
 				end
 				clause = Clause.new(literals, constraints)
@@ -128,7 +122,7 @@ class Parser
 			Helper.error("Invalid equality syntax in line #{i}")
 		else
 			spl = constraint.split("!=")
-			if(formula.index(spl[0]).nil? and formula.index(spl[1]).nil?) #at least one of them must be a logical variable
+			if(formula.index(spl[0]).nil? or formula.index(spl[1]).nil?) #for now the only type of allowed constraint is x != y
 				Helper.error("Logical variables used in the equality statement in line #{i} are not used in the clause")
 			end
 		end

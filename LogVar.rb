@@ -16,7 +16,7 @@ class LogVar
 		psize.gsub!(param, number)
 	end
 
-	def decrement_psize #psize may become negative at runtime
+	def decrement_psize
 		if(@psize.to_i.to_s == @psize)
 			@psize = (@psize.to_i - 1).to_s
 		else
