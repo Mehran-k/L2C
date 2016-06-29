@@ -59,15 +59,13 @@ Refer to the following publications for the details of the algorithms used in th
 Contact
 =======
 
-Main contact:
-
 Seyed Mehran Kazemi
 
 Computer Science Department
 
 The University of British Columbia
 
-568-2366 Main Mall, Vancouver, BC, Canada (V6T 1Z4)  
+201-2366 Main Mall, Vancouver, BC, Canada (V6T 1Z4)  
 
 <http://www.cs.ubc.ca/~smkazemi/>  
 
