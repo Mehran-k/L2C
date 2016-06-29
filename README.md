@@ -20,6 +20,16 @@ For example, to find the WFOMC of example1 in the examples folder, use:
 
     $ ruby L2C.rb -f examples/example1.wmc
 
+Specify the elimination ordering heuristic using `-h`. The possible values are `MNL` for MinNestedLoops and `MTS` for MinTableSize. The default heuristic is `MNL`.
+
+If `MNL` is selected, specify the number of stochastic local search iterations using `-k`. The default value is 25.
+
+Specify if the generated C++ programs must be readable or not using `-r`. The possible values are `true` (for readable) and `false` (for not readable). The default value is `false`. Generating readable C++ codes might be slightly slower. 
+
+As an example, the following command runs L2C for example1 using `MNL` with 20 stochastic local search iterations and outputs readable C++ code:
+
+    $ ruby L2C.rb -f examples/example1.wmc -h MNL -k 20 -r true
+
 
 Documentation
 =============
