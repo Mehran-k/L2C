@@ -16,6 +16,7 @@ require './branchingorder'
 #parameters
 order_heuristic = "MNL"
 num_sls = 25
+readable = false
 
 #arguments
 arguments = Hash.new
@@ -42,12 +43,18 @@ if !arguments["-k"].nil?
 		num_sls = arguments["-k"].to_i
 	end
 end
+if !arguments["-r"].nil?
+	if arguments["-r"] != "true" and arguments["-r"] != "false"
+		Helper.error("The readability command specified using '-r' must be either true or false.")
+	elsif arguments["-r"] == "true"
+		readable = true
+	end
+end
 
 content = File.read(arguments["-f"])
 parser = Parser.new(content)
 parser.produce_cnf
 cnf = CNF.new(parser.formulae)
-# cnf.remove_all_lv_neq_constant_constraints(true)
 cnf.preemptive_shatter
 puts "Initial theory after shattering:"
 puts cnf.my2string + "\n"
@@ -71,5 +78,6 @@ queues = wfomc.cache.queues_declaration
 puts "Compiling and executing the C++ program"
 t_start = Time.now
 cpp_handler = CPPHandler.new(cpp_core, doubles, queues)
+cpp_handler.add_indent if readable
 cpp_handler.execute(arguments["-f"].gsub(".wmc", ""), cnf.max_pop_size)
 puts "Compiling and executing the C++ program took " + (Time.now - t_start).to_s + " seconds."

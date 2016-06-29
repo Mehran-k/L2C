@@ -43,11 +43,11 @@ class WFOMC
 
 	def after_branch_cpp_string(core_name, array_counter, loop_iterator, cnf, to_evaluate, save_counter, branch_lv, with_cache)
 		str = ""
-		compile(cnf, with_cache).each_line {|line| str << Helper.indent(3) + line}
+		str << compile(cnf, with_cache)
 		if(@weights[core_name] == [0, 0])
-			str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{eval_str(cnf, to_evaluate, 'v' + (save_counter).to_s)};\n"
+			str << "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+#{eval_str(cnf, to_evaluate, 'v' + (save_counter).to_s)};\n"
 		else
-			str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+(#{@weights[core_name][0]}*#{loop_iterator}+#{@weights[core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf, to_evaluate, 'v' + (save_counter).to_s)};\n"
+			str << "v#{array_counter}_arr[#{loop_iterator}]=C_#{loop_iterator}+(#{@weights[core_name][0]}*#{loop_iterator}+#{@weights[core_name][1]}*(#{branch_lv.psize}-#{loop_iterator}))+#{eval_str(cnf, to_evaluate, 'v' + (save_counter).to_s)};\n"
 		end
 		return str
 	end
@@ -56,8 +56,8 @@ class WFOMC
 		str = ""
 		cnf_dup_00 = cnf.duplicate
 		cnf_dup_00.remove_clauses_having_logvar(branch_lv)
-		compile(cnf_dup_00, with_cache).each_line {|line| str << Helper.indent(1) + line}
-		str << Helper.indent(1) + "v#{array_counter}=#{eval_str(cnf_dup_00, Array.new, 'v' + (save_counter).to_s)};\n"
+		str << compile(cnf_dup_00, with_cache)
+		str << "v#{array_counter}=#{eval_str(cnf_dup_00, Array.new, 'v' + (save_counter).to_s)};\n"
 		return str
 	end
 
@@ -71,8 +71,8 @@ class WFOMC
 		constant = Constant.new(branch_lv.type.upcase + "_P1")
 		cnf_dup_1.replace_all_lvs_with_type(branch_lv.type, constant)
 
-		compile(cnf_dup_1, with_cache).each_line {|line| str << Helper.indent(1) + line}
-		str << Helper.indent(1) + "v#{array_counter}=#{eval_str(cnf_dup_1, to_evaluate, 'v' + (save_counter).to_s)};\n"
+		str << compile(cnf_dup_1, with_cache)
+		str << "v#{array_counter}=#{eval_str(cnf_dup_1, to_evaluate, 'v' + (save_counter).to_s)};\n"
 		return str
 	end
 
@@ -82,9 +82,9 @@ class WFOMC
 		clause = Clause.new([branch_prv.lit((boundary == "0" ? "false" : "true"))], Array.new)
 		cnf_dup.clauses << clause
 
-		compile(cnf_dup, false).each_line {|line| str << Helper.indent(3) + line}
+		str << compile(cnf_dup, false)
 		if(@noeffect_vars.include? "v#{save_counter}")
-			str << Helper.indent(3) + "v#{array_counter}_arr[#{loop_iterator}]=0;\n"
+			str << "v#{array_counter}_arr[#{loop_iterator}]=0;\n"
 		else
 			str.gsub!("v#{save_counter}=", "v#{array_counter}_arr[#{loop_iterator}]=")
 		end
@@ -122,15 +122,15 @@ class WFOMC
 		str = ""
 		cnf_dup = cnf.duplicate
 		save_counter = @counter
-		str << Helper.indent(1) + "double v#{array_counter}_arr[MAX];\n"
+		str << "double v#{array_counter}_arr[MAX];\n"
 		loop_iterator = "i_" + branch_prv.full_name + "_i"
-		str << Helper.indent(1) + "C_#{loop_iterator}=0;\n"
+		str << "C_#{loop_iterator}=0;\n"
 		@doubles |= ["C_#{loop_iterator}"]
-		str << Helper.indent(1) + "for(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"			
+		str << "for(int #{loop_iterator}=0;#{loop_iterator}<=#{branch_lv.psize};#{loop_iterator}++){\n"			
 		
-		str << Helper.indent(2) + "if(#{loop_iterator}==0){\n"
+		str << "if(#{loop_iterator}==0){\n"
 		str << branching_for_boundaries(cnf_dup, loop_iterator, array_counter, save_counter, branch_prv, "0", with_cache)
-		str << Helper.indent(2) + "}\n"
+		str << "}\n"
 		
 		cnf_dup_loop = cnf.duplicate
 		cnf_dup_loop.branch(branch_prv, "#{loop_iterator}")
@@ -141,41 +141,41 @@ class WFOMC
 
 		if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "1") and cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2") and (branch_lv_num_psize == 2 or branch_lv_num_psize.nil?))
 			save_counter = @counter
-			str << Helper.indent(2) + "else if(#{loop_iterator}==1 && #{branch_lv.psize}==2){\n"
+			str << "else if(#{loop_iterator}==1 && #{branch_lv.psize}==2){\n"
 			str << branching_for_11(cnf_dup_loop, branch_prv, array_counter, loop_iterator, to_evaluate, save_counter, branch_lv, true, true, false)
-			str << Helper.indent(2) + "}\n"
+			str << "}\n"
 		end
 		if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "1"))
 			save_counter = @counter
-			str << Helper.indent(2) + "else if(#{loop_iterator}==1){\n"
+			str << "else if(#{loop_iterator}==1){\n"
 			str << branching_for_11(cnf_dup_loop, branch_prv, array_counter, loop_iterator, to_evaluate, save_counter, branch_lv, true, false, false)
-			str << Helper.indent(2) + "}\n"
+			str << "}\n"
 		end
 		if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2"))
 			save_counter = counter
 			num_val = Helper.num_value("#{branch_lv.psize}-1")
 			if(!num_val.nil?)
-				str << Helper.indent(2) + "else if(#{loop_iterator}==#{num_val}){\n"
+				str << "else if(#{loop_iterator}==#{num_val}){\n"
 			else
-				str << Helper.indent(2) + "else if(#{loop_iterator}==#{branch_lv.psize}-1){\n"
+				str << "else if(#{loop_iterator}==#{branch_lv.psize}-1){\n"
 			end
 			str << branching_for_11(cnf_dup_loop, branch_prv, array_counter, loop_iterator, to_evaluate, save_counter, branch_lv, false, true, false)
-			str << Helper.indent(2) + "}\n"
+			str << "}\n"
 		end
 		save_counter = counter
-		str << Helper.indent(2) + "else if(#{loop_iterator}!=#{branch_lv.psize}){\n"
+		str << "else if(#{loop_iterator}!=#{branch_lv.psize}){\n"
 		cnf_dup_loop.remove_resolved_constraints
 		str << after_branch_cpp_string(branch_prv.core_name, array_counter, loop_iterator, cnf_dup_loop, to_evaluate, save_counter, branch_lv, with_cache)
-		str << Helper.indent(2) + "}\n"
+		str << "}\n"
 
 		save_counter = @counter
-		str << Helper.indent(2) + "else{\n"
+		str << "else{\n"
 		str << branching_for_boundaries(cnf_dup, loop_iterator, array_counter, save_counter, branch_prv, "n", with_cache)
-		str << Helper.indent(2) + "}\n"
+		str << "}\n"
 
-		str << Helper.indent(2) + "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];\n"
-		str << Helper.indent(1) + "}\n"
-		str << Helper.indent(1) + "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});\n"
+		str << "C_#{loop_iterator}=(C_#{loop_iterator}-logs[#{loop_iterator}+1])+logs[(#{branch_lv.psize})-#{loop_iterator}];\n"
+		str << "}\n"
+		str << "v#{array_counter}=sum_arr(v#{array_counter}_arr, #{branch_lv.psize});\n"
 		str << @cache.add(cnf, "v#{array_counter}") if with_cache
 
 		return str
@@ -183,7 +183,6 @@ class WFOMC
 
 	def compile(cnf, with_cache)
 		cnf_dup = cnf.duplicate
-		str = ""
 		save_counter = @counter
 		@counter += 1
 
@@ -205,7 +204,7 @@ class WFOMC
 			unit_prop_string, to_evaluate = cnf_dup.apply_unit_propagation(unit_clauses, @weights)
 			return "v#{save_counter}=-2000;\n" if(unit_prop_string == "false")
 			
-			compile(cnf_dup, with_cache).each_line {|line| str << line}
+			str = compile(cnf_dup, with_cache)
 			to_eval_string = eval_str(cnf_dup, to_evaluate, "v#{save_counter+1}")
 
 			if(to_eval_string == "0" and unit_prop_string == "")
@@ -213,7 +212,7 @@ class WFOMC
 			elsif(to_eval_string == "v#{save_counter+1}" and unit_prop_string == "")
 				str.gsub!("v#{save_counter+1}=", "v#{save_counter}=")
 			else
-				str += "v#{save_counter}=#{unit_prop_string}#{to_eval_string};\n"
+				str << "v#{save_counter}=#{unit_prop_string}#{to_eval_string};\n"
 			end
 			return str
 		end
@@ -221,9 +220,10 @@ class WFOMC
 		cc = cnf_dup.connected_components
 		if  cc.size != 1
 			product = ""
+			str = ""
 			cc.each_with_index do |cc_cnf, i|
 				product += "v#{@counter}+"
-				compile(cc_cnf, with_cache).each_line {|line| str << line}
+				str << compile(cc_cnf, with_cache)
 			end
 			str << "v#{save_counter}=#{product.chop};\n"
 			str << @cache.add(cnf, "v#{save_counter}") if with_cache
@@ -236,7 +236,7 @@ class WFOMC
 			cnf_dup.decompose(decomposer_lv_pos, prv_pos)
 			cnf_dup.adjust_after_decomposition(decomposer_lv_type)
 			cnf_dup.replace_no_lv_prvs_with_rvs
-			compile(cnf_dup, with_cache).each_line {|line| str << line}
+			str = compile(cnf_dup, with_cache)
 			str << "v#{save_counter}=v#{save_counter + 1}*(#{pop_size});\n"
 			str << @cache.add(cnf, "v#{save_counter}") if with_cache
 			return str
@@ -248,8 +248,7 @@ class WFOMC
 			cnf_dup.replace_individuals_for_fo2
 			cnf_dup.remove_resolved_constraints
 			cnf_dup.replace_no_lv_prvs_with_rvs
-			str = ""
-			compile(cnf_dup, with_cache).each_line {|line| str << line}
+			str = compile(cnf_dup, with_cache)
 			str << "v#{save_counter}=v#{save_counter+1}*(((#{psize})*(#{psize} - 1)) / 2.0);\n"
 			str << @cache.add(cnf, "v#{save_counter}") if with_cache
 			return str
@@ -260,15 +259,13 @@ class WFOMC
 			cnf_dup.update(branch_prv.full_name, "true")
 			to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated?}
 			cnf_dup.clauses -= to_evaluate
-
 			cnf_dup2 = cnf.duplicate
 			cnf_dup2.update(branch_prv.full_name, "false")
 			to_evaluate2 = cnf_dup2.clauses.select{|clause| clause.can_be_evaluated?}
 			cnf_dup2.clauses -= to_evaluate2
-			compile(cnf_dup, with_cache).each_line {|line| str << line}
+			str = compile(cnf_dup, with_cache)
 			save_counter2 = @counter
-			compile(cnf_dup2, with_cache).each_line {|line| str << line}
-
+			str << compile(cnf_dup2, with_cache)
 			str << "v#{save_counter}=sum(#{@weights[branch_prv.core_name][0]}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)},#{@weights[branch_prv.core_name][1]}+#{eval_str(cnf_dup2, to_evaluate2, 'v' + (save_counter2).to_s)});\n"
 			str << @cache.add(cnf, "v#{save_counter}") if with_cache
 			return str
@@ -281,13 +278,13 @@ class WFOMC
 			branch_lv_num_psize = Helper.num_value(branch_lv.psize)
 
 			if(branch_lv_num_psize == 0)
-				str << branching_for_psize_0_string(cnf_dup, branch_lv, array_counter, save_counter, with_cache)
+				return branching_for_psize_0_string(cnf_dup, branch_lv, array_counter, save_counter, with_cache)
 			elsif(branch_lv_num_psize == 1 and cnf_dup.has_lv_neq_lv_constraint_with_type? (branch_lv.type))
-				str << branching_for_psize_1_string(cnf_dup, branch_lv, array_counter, save_counter, with_cache)
+				return branching_for_psize_1_string(cnf_dup, branch_lv, array_counter, save_counter, with_cache)
 			elsif(not branch_lv_num_psize.nil?)
-				str << loop_string(array_counter, branch_prv, branch_lv, cnf_dup, branch_lv_num_psize, with_cache)
+				return loop_string(array_counter, branch_prv, branch_lv, cnf_dup, branch_lv_num_psize, with_cache)
 			else
-				str << "if(#{branch_lv.psize}==0){\n"
+				str = "if(#{branch_lv.psize}==0){\n"
 
 				str << branching_for_psize_0_string(cnf_dup, branch_lv, array_counter, save_counter, false)
 				str << "}\n"
@@ -302,8 +299,8 @@ class WFOMC
 				str << "else{\n"
 				str << loop_string(array_counter, branch_prv, branch_lv, cnf_dup, branch_lv_num_psize, with_cache)
 				str << "}\n"
+				return str
 			end
-			return str
 		else
 			puts cnf_dup.my2string
 			Helper.error("The input theory is not liftable")
