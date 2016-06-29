@@ -62,10 +62,15 @@ Contact
 Main contact:
 
 Seyed Mehran Kazemi
+
 Computer Science Department
+
 The University of British Columbia
+
 568-2366 Main Mall, Vancouver, BC, Canada (V6T 1Z4)  
-<www.cs.ubc.ca/~smkazemi/>  
+
+<http://www.cs.ubc.ca/~smkazemi/>  
+
 <smkazemi@cs.ubc.ca>
 
 
