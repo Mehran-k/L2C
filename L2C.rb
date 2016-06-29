@@ -1,19 +1,19 @@
 #Copyright (C) 2016  Seyed Mehran Kazemi, all rights reserved. See the full notice in LICENSE or at https://www.gnu.org/licenses/gpl-3.0.en.html
 
-require './parser'
-require './domain'
-require './Helper'
-require './constant'
-require './logvar'
-require './prv'
-require './literal'
-require './clause'
-require './cache'
-require './wfomc'
-require './cnf'
-require './constraint'
-require './cpphandler'
-require './branchingorder'
+require './classes/parser'
+require './classes/domain'
+require './classes/Helper'
+require './classes/constant'
+require './classes/logvar'
+require './classes/prv'
+require './classes/literal'
+require './classes/clause'
+require './classes/cache'
+require './classes/wfomc'
+require './classes/cnf'
+require './classes/constraint'
+require './classes/cpphandler'
+require './classes/branchingorder'
 
 #parameters
 order_heuristic = "MNL"
