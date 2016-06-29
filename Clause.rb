@@ -12,24 +12,11 @@ class Clause
 	end
 
 	def num_distinct_lvs
-		lv_hash = Hash.new
-		@literals.each {|literal| literal.prv.logvars.each {|lv| lv_hash[lv.name] = "true"}}
-		return lv_hash.keys.size
+		return @literals.map{|literal| literal.prv.logvars.map{|lv| lv.name}}.flatten.uniq.size
 	end
 
 	def can_be_evaluated?
 		@is_true or @literals.size == 0
-	end
-
-	def break_lv_neq_lv_to_lv_neq_constant(type, constant)
-		@constraints.each do |constraint|
-			if constraint.lv_neq_lv? and constraint.term1.type == type and constraint.term2.type == type
-				new_constraint1 = Constraint.new(constraint.term1.duplicate, constant.duplicate, "!=")
-				new_constraint2 = Constraint.new(constraint.term2.duplicate, constant.duplicate, "!=")
-				@constraints -= [constraint]
-				@constraints += [new_constraint1, new_constraint2]
-			end
-		end
 	end
 
 	def has_lv_with_type? (type)
@@ -65,27 +52,16 @@ class Clause
 		@literals.each {|literal| literal.prv.logvars.each_with_index {|prv_lv, i| literal.prv.logvars[i].decrement_psize if prv_lv.is_same_as(lv)}}
 	end
 
-	def update(prv_name, value) #note that update only drops literals from the clause. It does not (and should not) change L
-		@literals.each do |literal|
-			if  literal.name == prv_name
-				@is_true = true if literal.value == value 
-				@literals -= [literal] if literal.value != value
-			end
-		end
-	end
-
 	def get_all_lvs
 		@literals.map{|literal| literal.prv.logvars}.flatten
 	end
 
-	def get_all_distinct_lvs
+	def get_all_distinct_lvs #distinct in terms of names (not types)
 		lv_hash = Hash.new
 		lvs = Array.new
-		@literals.each do |literal|
-			literal.prv.logvars.each do |lv|
-				lvs << lv if lv_hash[lv.name].nil?
-				lv_hash[lv.name] = "true"
-			end
+		get_all_lvs.each do |lv|
+			lvs << lv if lv_hash[lv.name].nil?
+			lv_hash[lv.name] = "true"
 		end
 		return lvs
 	end
@@ -126,15 +102,8 @@ class Clause
 	end
 
 	def my2string
-		str = "<"
-		if is_false == 0
-			str << "False"
-		else
-			str << @literals.map{|lit| lit.my2string}.join("v")
-		end
-		if(@constraints.size != 0)
-			str << "," + @constraints.map{|constraint| constraint.my2string}.join(" ^ ")
-		end
+		str = "<" + (is_false ? "False" : @literals.map{|lit| lit.my2string}.join("v"))
+		str << "," + @constraints.map{|constraint| constraint.my2string}.join(" ^ ") if(@constraints.size != 0)
 		return str + ">" + (@is_true ? "(TRUE)" : "")
 	end
 

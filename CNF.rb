@@ -20,9 +20,7 @@ class CNF
 	end
 
 	def max_pop_size
-		max = 1
-		@clauses.each {|clause| clause.get_all_distinct_lvs.each {|lv| max = [max, lv.psize.to_i].max}}
-		return max
+		return @clauses.map{|clause| clause.get_all_distinct_lvs.map{|lv| lv.psize.to_i}}.flatten.max
 	end
 
 	def has_prv_with_core_name?(core_name)

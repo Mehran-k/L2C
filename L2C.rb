@@ -81,3 +81,4 @@ cpp_handler = CPPHandler.new(cpp_core, doubles, queues)
 cpp_handler.add_indent if readable
 cpp_handler.execute(arguments["-f"].gsub(".wmc", ""), cnf.max_pop_size)
 puts "Compiling and executing the C++ program took " + (Time.now - t_start).to_s + " seconds."
+
