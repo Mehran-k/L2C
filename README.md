@@ -80,4 +80,4 @@ Licensed under the GNU General Public License Version 3.0.
 <https://www.gnu.org/licenses/gpl-3.0.en.html>
 
 
-Copyright (c) 2016, The University of British Columbia. All rights reserved.
+Copyright (C) 2016  Seyed Mehran Kazemi
