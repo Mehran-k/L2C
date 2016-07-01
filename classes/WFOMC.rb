@@ -147,12 +147,7 @@ class WFOMC
 		end
 		if(cnf_dup_loop.has_lv_neq_lv_constraint_with_type? (branch_lv.type + "2"))
 			save_counter = counter
-			num_val = Helper.num_value("#{branch_lv.psize}-1")
-			if(!num_val.nil?)
-				str << "else if(#{loop_iterator}==#{num_val}){\n"
-			else
-				str << "else if(#{loop_iterator}==#{branch_lv.psize}-1){\n"
-			end
+			str << "else if(#{loop_iterator}==#{Helper.num_value_or_itself(branch_lv.psize+'-1')}){\n"
 			str << branching_for_11(cnf_dup_loop, branch_prv, array_counter, loop_iterator, to_evaluate, save_counter, branch_lv, false, true, false)
 			str << "}\n"
 		end
@@ -206,12 +201,7 @@ class WFOMC
 			elsif(to_eval_string == "v#{save_counter+1}" and unit_prop_string == "")
 				str.gsub!("v#{save_counter+1}=", "v#{save_counter}=")
 			else
-				num_value = Helper.num_value("#{unit_prop_string}#{to_eval_string}")
-				if num_value.nil?
-					str << "v#{save_counter}=#{unit_prop_string}#{to_eval_string};\n"
-				else
-					str << "v#{save_counter}=#{num_value};\n"
-				end
+				str << "v#{save_counter}=#{Helper.num_value_or_itself(unit_prop_string+to_eval_string)};\n"
 			end
 			return str
 		end
@@ -254,7 +244,6 @@ class WFOMC
 		end
 
 		branch_prv = cnf_dup.next_prv(@order)
-		puts "Branching on #{branch_prv.full_name}"
 		if  branch_prv.num_distinct_lvs == 0
 			cnf_dup.update(branch_prv.full_name, "true")
 			to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated?}

@@ -24,6 +24,14 @@ class Helper
 		end
 	end
 
+	def self.num_value_or_itself(str)
+		begin
+			eval(str)
+		rescue
+			str
+		end
+	end
+
 	def self.is_float(str)
 		str.to_i.to_s == str || str.to_f.to_s == str
 	end
