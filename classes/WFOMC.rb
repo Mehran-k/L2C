@@ -1,4 +1,4 @@
-#Copyright (C) 2016  Seyed Mehran Kazemi, all rights reserved. See the full notice in LICENSE or at https://www.gnu.org/licenses/gpl-3.0.en.html
+#Copyright (C) 2016  Seyed Mehran Kazemi, Licensed under the GPL V3; see: <https://www.gnu.org/licenses/gpl-3.0.en.html>
 
 class WFOMC
 	attr_accessor :weights, :order, :counter, :noeffect_vars, :doubles, :cache
@@ -23,6 +23,7 @@ class WFOMC
 	end
 
 	def eval_str(cnf, to_evaluate_clauses, v) #evaluates clauses that can be evaluated and generates appropriate string
+		return "-2000" if CNF.new(to_evaluate_clauses).has_false_clause
 		(@noeffect_vars.include? v) ? (return "0") : (return v) if to_evaluate_clauses.empty?
 		str = ""
 		all_prvs = cnf.get_all_prv_names
@@ -174,6 +175,7 @@ class WFOMC
 	end
 
 	def compile(cnf, with_cache)
+
 		cnf_dup = cnf.duplicate
 		save_counter = @counter
 		@counter += 1
@@ -252,6 +254,7 @@ class WFOMC
 		end
 
 		branch_prv = cnf_dup.next_prv(@order)
+		puts "Branching on #{branch_prv.full_name}"
 		if  branch_prv.num_distinct_lvs == 0
 			cnf_dup.update(branch_prv.full_name, "true")
 			to_evaluate = cnf_dup.clauses.select{|clause| clause.can_be_evaluated?}
@@ -275,7 +278,6 @@ class WFOMC
 			array_counter = save_counter
 			save_counter = @counter
 			branch_lv = branch_prv.first_lv
-
 			branch_lv_num_psize = Helper.num_value(branch_lv.psize)
 
 			if(branch_lv_num_psize == 0)

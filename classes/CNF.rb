@@ -1,4 +1,4 @@
-#Copyright (C) 2016  Seyed Mehran Kazemi, all rights reserved. See the full notice in LICENSE or at https://www.gnu.org/licenses/gpl-3.0.en.html
+#Copyright (C) 2016  Seyed Mehran Kazemi, Licensed under the GPL V3; see: <https://www.gnu.org/licenses/gpl-3.0.en.html>
 
 class CNF
 	attr_accessor :clauses
@@ -22,7 +22,7 @@ class CNF
 	end
 
 	def max_pop_size
-		return @clauses.map{|clause| clause.get_all_distinct_lvs.map{|lv| lv.psize.to_i}}.flatten.max
+		return @clauses.map{|clause| clause.get_all_distinct_lvs.map{|lv| lv.psize.to_i}}.flatten.max.to_i
 	end
 
 	def has_prv_with_core_name?(core_name)
