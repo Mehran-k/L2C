@@ -42,27 +42,23 @@ Publications
 
 Refer to the following publications for the details of the algorithms used in this compiler:
 
-- Seyed Mehran Kazemi and David Poole
+- [Seyed Mehran Kazemi](http://www.cs.ubc.ca/~smkazemi) and [David Poole](http://www.cs.ubc.ca/~poole)
 
-  Knowledge Compilation for Lifted Probabilistic Inference: Compiling to a Low-Level Program
+  [Knowledge Compilation for Lifted Probabilistic Inference: Compiling to a Low-Level Program](http://www.cs.ubc.ca/~smkazemi/files/KazemiPoole-LRC2CPP.pdf)
 
   In Proceedings of the 15th International Conference on Principles of Knowledge Representation and Reasoning, 2016
 
-  ([pdf](http://www.cs.ubc.ca/~smkazemi/files/KazemiPoole-LRC2CPP.pdf))
-- Seyed Mehran Kazemi and David Poole
+- [Seyed Mehran Kazemi](http://www.cs.ubc.ca/~smkazemi) and [David Poole](http://www.cs.ubc.ca/~poole)
 
-  Why is Compiling Lifted Inference into a Low-Level Program so Efficient?
+  [Why is Compiling Lifted Inference into a Low-Level Program so Efficient?](http://www.cs.ubc.ca/~smkazemi/files/KazemiPoole-LRC2CPP-exp.pdf)
 
   In Proceedings of the Sixth International Workshop on Statistical Relational AI, 2016
 
-  ([pdf](http://www.cs.ubc.ca/~smkazemi/files/KazemiPoole-LRC2CPP-exp.pdf))
-- Seyed Mehran Kazemi and David Poole
+- [Seyed Mehran Kazemi](http://www.cs.ubc.ca/~smkazemi) and [David Poole](http://www.cs.ubc.ca/~poole)
 
-  Elimination Ordering in Lifted First-Order Probabilistic Inference
+  [Elimination Ordering in Lifted First-Order Probabilistic Inference](https://www.cs.ubc.ca/~poole/papers/elim-order-aaai-2014.pdf)
 
   In Proceedings of the 28th AAAI Conference, 2014
-  
-  ([pdf](https://www.cs.ubc.ca/~poole/papers/elim-order-aaai-2014.pdf))
 
 
 Contact
