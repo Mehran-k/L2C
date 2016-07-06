@@ -43,16 +43,25 @@ Publications
 Refer to the following publications for the details of the algorithms used in this compiler:
 
 - Seyed Mehran Kazemi and David Poole
+
   Knowledge Compilation for Lifted Probabilistic Inference: Compiling to a Low-Level Program
+
   In Proceedings of the 15th International Conference on Principles of Knowledge Representation and Reasoning, 2016
+
   ([pdf](http://www.cs.ubc.ca/~smkazemi/files/KazemiPoole-LRC2CPP.pdf))
 - Seyed Mehran Kazemi and David Poole
+
   Why is Compiling Lifted Inference into a Low-Level Program so Efficient?
+
   In Proceedings of the Sixth International Workshop on Statistical Relational AI, 2016
+
   ([pdf](http://www.cs.ubc.ca/~smkazemi/files/KazemiPoole-LRC2CPP-exp.pdf))
 - Seyed Mehran Kazemi and David Poole
+
   Elimination Ordering in Lifted First-Order Probabilistic Inference
+
   In Proceedings of the 28th AAAI Conference, 2014
+  
   ([pdf](https://www.cs.ubc.ca/~poole/papers/elim-order-aaai-2014.pdf))
 
 
