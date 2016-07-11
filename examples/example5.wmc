@@ -10,27 +10,17 @@ predicate b(d2)
 predicate c(d1)
 predicate d(d2)
 predicate e
-predicate AUX1(d1,d2) 1.221403 1
-predicate AUX2(d1) 1.221403 1
-predicate AUX3(d2) 1.221403 1
-predicate AUX4(d1, d2) 1.221403 1
-predicate AUX5(d2) 1.221403 1
+predicate AUX1(d1,d2) 0.221403 1
+predicate AUX2(d1) 0.221403 1
+predicate AUX3(d2) 0.221403 1
+predicate AUX4(d1, d2) 0.221403 1
+predicate AUX5(d2) 0.221403 1
 
 !AUX1(x, y) v a(x) v b(y)
-!a(x) v AUX1(x, y)
-!b(y) v AUX1(x, y)
 !AUX2(x) v a(x) v c(x)
-!a(x) v AUX2(x)
-!c(x) v AUX2(x)
 !AUX3(y) v b(y) v d(y)
-!b(y) v AUX3(y)
-!d(y) v AUX3(y)
 !AUX4(x, y) v c(x) v d(y)
-!c(x) v AUX4(x, y)
-!d(y) v AUX4(x, y)
 !AUX5(y) v e v d(y)
-!e v AUX5(y)
-!d(y) v AUX5(y)
 
 
 

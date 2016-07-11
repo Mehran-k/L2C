@@ -5,16 +5,11 @@ domain people 5 {Mehran, David, Alice, Bob, Charlie}
 predicate Smokes(people)
 predicate Friend(people, people)
 predicate Cancer(people)
-predicate AUX1(people, people) 2.71828182 1
-predicate AUX2(people) 1.64872127 1
+predicate AUX1(people, people) 1.71828182 1
+predicate AUX2(people) 0.64872127 1
 
 //1 Smokes(x) ^ Friend(x, y) => Smokes(y) expands into:
 !AUX1(x, y) v !Smokes(x) v !Friend(x,y) v Smokes(y)
-Smokes(x) v AUX1(x, y)
-Friend(x, y) v AUX1(x, y)
-!Smokes(y) v AUX1(x, y)
 
 //0.5 Smokes(x) => Cancer(x) expands into
 !AUX2(x) v !Smokes(x) v Cancer(x)
-Smokes(x) v AUX2(x)
-!Cancer(x) v AUX2(x)

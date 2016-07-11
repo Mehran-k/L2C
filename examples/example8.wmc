@@ -6,13 +6,9 @@ domain workshop 25 {W1,W2,W3,W4,W5,W6,W7,W8,W9,W10,W11,W12,W13,W14,W15,W16,W17,W
 predicate series
 predicate hot(workshop)
 predicate attends(people)
-predicate AUX1(people,workshop) 1.349859 1
-predicate AUX2(people) 1.221403 1
+predicate AUX1(people,workshop) 0.349859 1
+predicate AUX2(people) 0.221403 1
 
 
 !AUX1(p, w) v !hot(w) v attends(p)
-hot(w) v AUX1(p, w)
-!attends(p) v AUX1(p, w)
 !AUX2(p) v !attends(p) v series
-attends(p) v AUX2(p)
-!series v AUX2(p)

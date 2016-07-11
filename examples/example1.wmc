@@ -4,9 +4,12 @@ domain people 5 {Mehran, David, Alice, Bob, Charlie}
 
 predicate Smokes(people)
 predicate Friend(people, people)
-predicate AUX(people, people) 2.71828182 1
+predicate AUX(people, people) 1.71828182 1
 
 !AUX(x, y) v !Smokes(x) v !Friend(x,y) v Smokes(y)
-Smokes(x) v AUX(x, y)
-Friend(x, y) v AUX(x, y)
-!Smokes(y) v AUX(x, y)
+
+
+//equivalently, one can set w(AUX)=2.71828182 and then add the following WFs:
+//Smokes(x) v AUX(x, y)
+//Friend(x, y) v AUX(x, y)
+//!Smokes(y) v AUX(x, y)
