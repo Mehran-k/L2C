@@ -57,6 +57,7 @@ class WFOMC
 	def branching_for_psize_0_string(cnf, branch_lv, array_counter, save_counter, with_cache)
 		cnf_dup_00 = cnf.duplicate
 		cnf_dup_00.remove_clauses_having_logvar(branch_lv)
+		cnf_dup_00.replace_parameters(branch_lv.psize, "0")
 		str = compile(cnf_dup_00, with_cache)
 		str << "v#{array_counter}=#{eval_str(cnf_dup_00, Array.new, 'v' + (save_counter).to_s)};\n"
 		return str
@@ -69,6 +70,7 @@ class WFOMC
 		cnf_dup_1.clauses -= to_evaluate
 		constant = Constant.new(branch_lv.type.upcase + "_P1")
 		cnf_dup_1.replace_all_lvs_with_type(branch_lv.type, constant)
+		cnf_dup_1.replace_parameters(branch_lv.psize, "1")
 
 		str = compile(cnf_dup_1, with_cache)
 		str << "v#{array_counter}=#{eval_str(cnf_dup_1, to_evaluate, 'v' + (save_counter).to_s)};\n"
