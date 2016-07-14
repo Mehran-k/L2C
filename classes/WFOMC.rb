@@ -275,6 +275,8 @@ class WFOMC
 				return branching_for_psize_1_string(cnf_dup, branch_lv, array_counter, save_counter, with_cache)
 			elsif(not branch_lv_num_psize.nil?)
 				return loop_string(array_counter, branch_prv, branch_lv, cnf_dup, branch_lv_num_psize, with_cache)
+			elsif(branch_lv.psize.start_with? "i_" and branch_lv.psize.end_with? "_i")
+				return loop_string(array_counter, branch_prv, branch_lv, cnf_dup, branch_lv_num_psize, with_cache)
 			else
 				str = "if(#{branch_lv.psize}==0){\n"
 				str << branching_for_psize_0_string(cnf_dup, branch_lv, array_counter, save_counter, false)
