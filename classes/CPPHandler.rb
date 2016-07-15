@@ -1,12 +1,22 @@
 #Copyright (C) 2016  Seyed Mehran Kazemi, Licensed under the GPL V3; see: <https://www.gnu.org/licenses/gpl-3.0.en.html>
 
 class CPPHandler
-	attr_accessor :core, :doubles, :queues
+	attr_accessor :core, :doubles, :queues, :weights
 
-	def initialize(core, doubles, queues)
-		@core = core.gsub("+0;", ";").gsub("*1;", ";")
+	def initialize(core, doubles, queues, weights)
+		@core = core
 		@doubles = doubles
 		@queues = queues
+		@weights = weights
+	end
+
+	def polish_code
+		@core.gsub!("+0;", ";")
+		@core.gsub!("*1;", ";")
+		@weights.each do |prv_name, values|
+			@core.gsub!("sum(0.0,#{values[2]})", "#{values[3]}")
+			@core.gsub!("sum(#{values[2]},0.0)", "#{values[3]}")
+		end
 	end
 
 	def add_indent

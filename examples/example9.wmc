@@ -11,7 +11,7 @@ predicate Romance(movies)
 predicate Likes(people, movies)
 predicate AUX1(people, people) 1.71828182 1
 predicate AUX2(people, movies) 2.32011692 1
-predicate AUX3(people, movies) 2.32012692 1
+predicate AUX3(people, movies) 2.32011692 1
 
 // Old(x) ^ Friend(x, y) => Old(y)
 !AUX1(x, y) v !Old(x) v !Friend(x, y) v Old(y)

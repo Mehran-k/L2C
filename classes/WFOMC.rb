@@ -255,6 +255,7 @@ class WFOMC
 			eval_true = Helper.num_value_or_itself(eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s))
 			eval_false = Helper.num_value_or_itself(eval_str(cnf_dup2, to_evaluate2, 'v' + (save_counter2).to_s))
 
+
 			if(eval_true == 0 and eval_false == 0)
 				str << "v#{save_counter}=#{@weights[branch_prv.core_name][2]};\n"
 			elsif(@weights[branch_prv.core_name] == [0, 0])

@@ -72,14 +72,15 @@ wfomc.set_order(order)
 puts "Starting to compile"
 t_start = Time.now
 cpp_core = wfomc.compile(cnf, true)
+cpp_core = wfomc.cache.remove_inserts(cpp_core)
 puts "The compilation is done!"
 puts "Compilation took " + (Time.now - t_start).to_s + " seconds.\n\n"
-cpp_core = wfomc.cache.remove_inserts(cpp_core)
 doubles = wfomc.get_doubles
 queues = wfomc.cache.queues_declaration
 puts "Compiling and executing the C++ program"
 t_start = Time.now
-cpp_handler = CPPHandler.new(cpp_core, doubles, queues)
+cpp_handler = CPPHandler.new(cpp_core, doubles, queues, weight_function)
+cpp_handler.polish_code
 cpp_handler.add_indent if readable
 cpp_handler.execute(arguments["-f"].gsub(".wmc", ""), cnf.max_pop_size)
 puts "Compiling and executing the C++ program took " + (Time.now - t_start).to_s + " seconds."
