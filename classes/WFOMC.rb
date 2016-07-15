@@ -31,11 +31,7 @@ class WFOMC
 		to_evaluate_clauses.each do |clause| 
 			clause.literals.each do |literal|
 				if not all_prvs.include? literal.name and not already_counted.include? literal.name
-					if(@weights[literal.prv.core_name] == [0.0, 0.0])
-						str << "0.6931471805*#{literal.prv.psize(clause.constraints)}+"
-					else
-						str << "sum(#{@weights[literal.prv.core_name][0]}, #{@weights[literal.prv.core_name][1]})*#{literal.prv.psize(clause.constraints)}+"
-					end
+					str << Helper.num_value_or_itself("#{@weights[literal.prv.core_name][2]}*#{literal.prv.psize(clause.constraints)}").to_s + "+"
 					already_counted << literal.name
 				end
 			end
@@ -229,7 +225,6 @@ class WFOMC
 			cnf_dup.replace_no_lv_prvs_with_rvs
 			str = compile(cnf_dup, with_cache)
 			str << "v#{save_counter}=v#{save_counter + 1}*(#{pop_size});\n"
-			str << @cache.add(cnf, "v#{save_counter}") if with_cache
 			return str
 		end
 
@@ -241,7 +236,6 @@ class WFOMC
 			cnf_dup.replace_no_lv_prvs_with_rvs
 			str = compile(cnf_dup, with_cache)
 			str << "v#{save_counter}=v#{save_counter+1}*(((#{psize})*(#{psize} - 1)) / 2.0);\n"
-			str << @cache.add(cnf, "v#{save_counter}") if with_cache
 			return str
 		end
 
@@ -257,10 +251,18 @@ class WFOMC
 			str = compile(cnf_dup, with_cache)
 			save_counter2 = @counter
 			str << compile(cnf_dup2, with_cache)
-			if(@weights[branch_prv.core_name] == [0, 0])
-				str << "v#{save_counter}=sum(#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)}, #{eval_str(cnf_dup2, to_evaluate2, 'v' + (save_counter2).to_s)});\n"
+			
+			eval_true = Helper.num_value_or_itself(eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s))
+			eval_false = Helper.num_value_or_itself(eval_str(cnf_dup2, to_evaluate2, 'v' + (save_counter2).to_s))
+
+			if(eval_true == 0 and eval_false == 0)
+				str << "v#{save_counter}=#{@weights[branch_prv.core_name][2]};\n"
+			elsif(@weights[branch_prv.core_name] == [0, 0])
+				str << "v#{save_counter}=sum(#{eval_true}, #{eval_false});\n"
 			else
-				str << "v#{save_counter}=sum(#{@weights[branch_prv.core_name][0]}+#{eval_str(cnf_dup, to_evaluate, 'v' + (save_counter+1).to_s)},#{@weights[branch_prv.core_name][1]}+#{eval_str(cnf_dup2, to_evaluate2, 'v' + (save_counter2).to_s)});\n"
+				comp1 = Helper.num_value_or_itself("#{@weights[branch_prv.core_name][0]}+#{eval_true}")
+				comp2 = Helper.num_value_or_itself("#{@weights[branch_prv.core_name][1]}+#{eval_false}")
+				str << "v#{save_counter}=sum(#{comp1},#{comp2});\n"
 			end
 			str << @cache.add(cnf, "v#{save_counter}") if with_cache
 			return str
