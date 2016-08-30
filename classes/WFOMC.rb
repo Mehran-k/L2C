@@ -194,7 +194,7 @@ class WFOMC
 			str = compile(cnf_dup, with_cache)
 			to_eval_string = eval_str(cnf_dup, to_evaluate, "v#{save_counter+1}")
 
-			if(to_eval_string == "0" and unit_prop_string == "")
+			if(to_eval_string == "0" and unit_prop_string == "" and save_counter != 1)
 				@noeffect_vars << "v#{save_counter}"
 			elsif(to_eval_string == "v#{save_counter+1}" and unit_prop_string == "")
 				str.gsub!("v#{save_counter+1}=", "v#{save_counter}=")
